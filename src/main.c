@@ -1,6 +1,7 @@
 
 #include <psp2/kernel/processmgr.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/io/fcntl.h>
 #include <psp2/ctrl.h>
 #include <string.h>
 #include "../include/app.h"

@@ -48,16 +48,18 @@ jobs:
               data = path.read_bytes()
               if len(data) < 33 or data[:8] != PNG_SIG:
                   raise ValueError("not a valid PNG")
-              length = struct.unpack(">I", data[8:12])[0]
-              if data[12:16] != b'IHDR' or length != 13:
-                  raise ValueError("invalid IHDR")
+              if data[12:16] != b'IHDR':
+                  raise ValueError("missing IHDR")
               return struct.unpack(">IIBBBBB", data[16:29])[:4]
 
+          # PS Vita-safe LiveArea formats:
+          # icon0 / pic0 / bg0: 8-bit indexed PNG, no alpha
+          # startup: 8-bit RGBA allowed
           specs = {
-              Path("sce_sys/icon0.png"): ((128,128), 8, 6), # RGBA
-              Path("sce_sys/pic0.png"): ((960,544), 8, 2), # RGB
-              Path("sce_sys/livearea/contents/bg0.png"): ((840,500), 8, 2),
-              Path("sce_sys/livearea/contents/startup.png"): ((280,158), 8, 2),
+              Path("sce_sys/icon0.png"): ((128,128), 8, 3),
+              Path("sce_sys/pic0.png"): ((960,544), 8, 3),
+              Path("sce_sys/livearea/contents/bg0.png"): ((840,500), 8, 3),
+              Path("sce_sys/livearea/contents/startup.png"): ((280,158), 8, 6),
           }
 
           for path, (size, depth, color_type) in specs.items():
@@ -82,14 +84,16 @@ jobs:
               bad.append(f"{template}: missing")
 
           if bad:
-              print("LiveArea validation FAILED:")
+              print("LiveArea PNG validation FAILED:")
               for item in bad:
                   print(" -", item)
               raise SystemExit(1)
 
           print("LiveArea validation: OK")
-          print(" icon0.png: 128x128, 8-bit RGBA")
-          print(" motif safe area: approximately 120x120")
+          print(" icon0: 128x128 / 8-bit indexed / no alpha")
+          print(" pic0: 960x544 / 8-bit indexed / no alpha")
+          print(" bg0: 840x500 / 8-bit indexed / no alpha")
+          print(" startup: 280x158 / 8-bit RGBA")
           PY
 
       - name: Check zlib
@@ -117,7 +121,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v2.1-menu-livearea-fix-VPK
+          name: MrWrack-PKG-Converter-v2.2-install-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

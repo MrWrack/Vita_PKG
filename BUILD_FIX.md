@@ -1,11 +1,11 @@
-# v1.4.1 Build Fix
+# v1.4.2 Build Fix
 
-GitHub Actions reported:
-
+GitHub Actions error:
 `implicit declaration of function 'sceIoMkdir'`
 
-Fix:
-- added `#include <psp2/io/dirent.h>` to every source file that uses
-  `sceIoMkdir`, `sceIoDopen`, `sceIoDread`, `sceIoDclose`, or `sceIoRmdir`.
+Correct VitaSDK declarations:
+- `sceIoMkdir`, `sceIoRmdir`, `sceIoGetstat` -> `<psp2/io/stat.h>`
+- `sceIoDopen`, `sceIoDread`, `sceIoDclose` -> `<psp2/io/dirent.h>`
+- file open/read/write/remove -> `<psp2/io/fcntl.h>`
 
-This is the VitaSDK header that provides the directory I/O declarations.
+v1.4.2 adds the correct `stat.h` include to every affected source file.

@@ -1,20 +1,36 @@
-# MrWrack PKG Converter v1.8 Vita Test
+# MrWrack PKG Converter v2.1
 
-## Controls
+## Main controls
 
-- D-pad Up/Down: navigate
+- D-pad: navigate
 - X: select
-  - on VPK: convert VPK -> MRW-PKG
-  - on MRW-PKG: install
-- Triangle: delete selected VPK/PKG file
-- Square: refresh/rescan
+- Triangle: delete selected VPK/PKG (with confirmation)
+- Square: refresh
 - Circle: back
-- START: exit app
+- Start: exit
 
-Converted MRW-PKG files are saved to:
+## Menus
+
+- VPK Files / Convert
+- PKG Files / Install
+- Settings
+- About
+- Exit
+
+## VPK -> PKG
+
+Choose `VPK Files / Convert`, select a `.vpk`, then press X.
+The custom MRW-PKG v2 file is written to:
 
 `ux0:/data/MrWrackPKG/pkg/`
 
-Delete only applies to VPK/PKG files. Installed apps are not deleted by Triangle.
+## LiveArea icon
 
-The double-buffered renderer from v1.7 is retained to reduce flicker.
+`icon0.png` is:
+- PNG
+- 128 x 128 pixels
+- 8-bit RGBA
+- transparent outer margin
+- motif approximately 120 x 120 pixels
+
+The GitHub validator checks this exact format.

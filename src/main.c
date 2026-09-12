@@ -42,7 +42,7 @@ static const char *type_name(ItemType t){
 static void draw_ui(const BrowserList *b){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(0x0000FF00);
-    printf("MRWRACK PKG CONVERTER  v1.5 TEST\n");
+    printf("MRWRACK PKG CONVERTER  v1.6 TEST\n");
     psvDebugScreenSetFgColor(0x00FFFFFF);
     printf("Homebrew VPK / MRW-PKG installer\n");
     printf("------------------------------------------------------------\n");
@@ -80,6 +80,7 @@ static void draw_ui(const BrowserList *b){
     printf("%s\n",g_progress.message);
     if(g_last_result)
         printf("Result: %d / 0x%08X\n",g_last_result,(unsigned)g_last_result);
+    psvDebugScreenPresent();
 }
 
 int main(void){
@@ -142,6 +143,7 @@ int main(void){
     }
 
     settings_save(&settings);
+    psvDebugScreenShutdown();
     sceKernelExitProcess(0);
     return 0;
 }

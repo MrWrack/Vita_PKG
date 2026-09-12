@@ -39,19 +39,53 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          from PIL import Image
+          import struct
+
+          PNG_SIG = b'\x89PNG\r\n\x1a\n'
           bad = []
-          for p in Path('sce_sys').rglob('*.png'):
-              im = Image.open(p)
-              if im.mode != 'P':
-                  bad.append(f"{p}: mode={im.mode}, expected indexed palette mode P")
-              if p.name == 'icon0.png' and im.size != (120, 120):
-                  bad.append(f"{p}: size={im.size}, expected 120x120")
+
+          def read_png_ihdr(path):
+              data = path.read_bytes()
+              if len(data) < 33 or data[:8] != PNG_SIG:
+                  raise ValueError("not a valid PNG")
+              length = struct.unpack(">I", data[8:12])[0]
+              ctype = data[12:16]
+              if ctype != b'IHDR' or length != 13:
+                  raise ValueError("missing/invalid IHDR")
+              width, height, bit_depth, color_type, comp, filt, interlace = struct.unpack(
+                  ">IIBBBBB", data[16:29]
+              )
+              return width, height, bit_depth, color_type
+
+          for p in Path("sce_sys").rglob("*.png"):
+              try:
+                  width, height, bit_depth, color_type = read_png_ihdr(p)
+              except Exception as e:
+                  bad.append(f"{p}: {e}")
+                  continue
+
+              # PNG color type 3 = indexed/palette.
+              if color_type != 3:
+                  bad.append(
+                      f"{p}: PNG color type={color_type}, expected indexed/palette type 3"
+                  )
+
+              if p.name == "icon0.png" and (width, height) != (120, 120):
+                  bad.append(
+                      f"{p}: size={width}x{height}, expected 120x120"
+                  )
+
+              if bit_depth not in (1, 2, 4, 8):
+                  bad.append(
+                      f"{p}: indexed PNG bit depth={bit_depth}, expected 1/2/4/8"
+                  )
+
           if bad:
               print("LiveArea PNG validation FAILED:")
-              for x in bad:
-                  print(" -", x)
+              for item in bad:
+                  print(" -", item)
               raise SystemExit(1)
+
           print("LiveArea PNG validation: OK")
           PY
 
@@ -75,7 +109,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v1.5.4-workflow-inline-validation-VPK
+          name: MrWrack-PKG-Converter-v1.5.5-no-pil-workflow-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

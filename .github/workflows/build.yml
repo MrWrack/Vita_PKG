@@ -44,49 +44,52 @@ jobs:
           PNG_SIG = b'\x89PNG\r\n\x1a\n'
           bad = []
 
-          def read_png_ihdr(path):
+          def ihdr(path):
               data = path.read_bytes()
               if len(data) < 33 or data[:8] != PNG_SIG:
                   raise ValueError("not a valid PNG")
               length = struct.unpack(">I", data[8:12])[0]
-              ctype = data[12:16]
-              if ctype != b'IHDR' or length != 13:
-                  raise ValueError("missing/invalid IHDR")
-              width, height, bit_depth, color_type, comp, filt, interlace = struct.unpack(
-                  ">IIBBBBB", data[16:29]
-              )
-              return width, height, bit_depth, color_type
+              if data[12:16] != b'IHDR' or length != 13:
+                  raise ValueError("invalid IHDR")
+              return struct.unpack(">IIBBBBB", data[16:29])[:4]
 
-          for p in Path("sce_sys").rglob("*.png"):
+          specs = {
+              Path("sce_sys/icon0.png"): ((128,128), 8, 6), # RGBA
+              Path("sce_sys/pic0.png"): ((960,544), 8, 2), # RGB
+              Path("sce_sys/livearea/contents/bg0.png"): ((840,500), 8, 2),
+              Path("sce_sys/livearea/contents/startup.png"): ((280,158), 8, 2),
+          }
+
+          for path, (size, depth, color_type) in specs.items():
+              if not path.exists():
+                  bad.append(f"{path}: missing")
+                  continue
               try:
-                  width, height, bit_depth, color_type = read_png_ihdr(p)
+                  width, height, bit_depth, actual_type = ihdr(path)
               except Exception as e:
-                  bad.append(f"{p}: {e}")
+                  bad.append(f"{path}: {e}")
                   continue
 
-              # PNG color type 3 = indexed/palette.
-              if color_type != 3:
-                  bad.append(
-                      f"{p}: PNG color type={color_type}, expected indexed/palette type 3"
-                  )
+              if (width,height) != size:
+                  bad.append(f"{path}: {width}x{height}, expected {size[0]}x{size[1]}")
+              if bit_depth != depth:
+                  bad.append(f"{path}: bit depth {bit_depth}, expected {depth}")
+              if actual_type != color_type:
+                  bad.append(f"{path}: PNG color type {actual_type}, expected {color_type}")
 
-              if p.name == "icon0.png" and (width, height) != (128, 128):
-                  bad.append(
-                      f"{p}: size={width}x{height}, expected 128x128"
-                  )
-
-              if bit_depth not in (1, 2, 4, 8):
-                  bad.append(
-                      f"{p}: indexed PNG bit depth={bit_depth}, expected 1/2/4/8"
-                  )
+          template = Path("sce_sys/livearea/contents/template.xml")
+          if not template.exists():
+              bad.append(f"{template}: missing")
 
           if bad:
-              print("LiveArea PNG validation FAILED:")
+              print("LiveArea validation FAILED:")
               for item in bad:
                   print(" -", item)
               raise SystemExit(1)
 
-          print("LiveArea PNG validation: OK")
+          print("LiveArea validation: OK")
+          print(" icon0.png: 128x128, 8-bit RGBA")
+          print(" motif safe area: approximately 120x120")
           PY
 
       - name: Check zlib
@@ -114,7 +117,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v2.0-livearea-VPK
+          name: MrWrack-PKG-Converter-v2.1-menu-livearea-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

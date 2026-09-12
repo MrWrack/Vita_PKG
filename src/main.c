@@ -23,6 +23,13 @@ int launch_title_manual(const char *title_id);
 static MrwInstallProgress g_progress;
 static int g_last_result = 0;
 
+/*
+ * Keep large runtime state out of main()'s stack.
+ * BrowserList is ~170-180 KB and can overflow the Vita main-thread stack.
+ */
+static BrowserList g_browser;
+static Settings g_settings;
+
 typedef enum {
     SCREEN_HOME = 0,
     SCREEN_VPK,
@@ -108,7 +115,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v2.1\n");
+    printf("MRWRACK PKG CONVERTER  v2.3\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -225,7 +232,7 @@ static void draw_about(void){
     psvDebugScreenSetFgColor(COLOR_GREEN);
     printf("MrWrack PKG Converter\n\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
-    printf("Version: 2.1\n");
+    printf("Version: 2.3\n");
     printf("Title ID: MRWPKG001\n\n");
     printf("Features:\n");
     printf("  - VPK -> MRW-PKG v2 conversion\n");
@@ -282,12 +289,11 @@ int main(void){
     if(screen_r<0)
         sceKernelExitProcess(screen_r);
 
-    Settings settings;
-    settings_load(&settings);
+    memset(&g_settings,0,sizeof(g_settings));
+    settings_load(&g_settings);
 
-    BrowserList browser;
-    memset(&browser,0,sizeof(browser));
-    scan_packages(&browser);
+    memset(&g_browser,0,sizeof(g_browser));
+    scan_packages(&g_browser);
 
     memset(&g_progress,0,sizeof(g_progress));
     strcpy(g_progress.stage,"Ready");
@@ -295,13 +301,24 @@ int main(void){
 
     sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
 
-    unsigned last=0;
+    /*
+     * Flush any stale controller state inherited around app launch.
+     * This prevents a held/stale button from triggering Exit immediately.
+     */
+    SceCtrlData startup_pad;
+    memset(&startup_pad,0,sizeof(startup_pad));
+    for(int i=0;i<30;i++){
+        sceCtrlPeekBufferPositive(0,&startup_pad,1);
+        sceKernelDelayThread(16666);
+    }
+
+    unsigned last=startup_pad.buttons;
     int redraw=1;
     int running=1;
 
     while(running){
         if(redraw){
-            draw_ui(&browser,&settings);
+            draw_ui(&g_browser,&g_settings);
             redraw=0;
         }
 
@@ -330,13 +347,13 @@ int main(void){
                 redraw=1;
             }
             if(pressed&SCE_CTRL_SQUARE){
-                refresh_files(&browser);
+                refresh_files(&g_browser);
                 redraw=1;
             }
         }
         else if(g_screen==SCREEN_VPK || g_screen==SCREEN_PKG){
             ItemType type=g_screen==SCREEN_VPK ? ITEM_VPK : ITEM_PKG;
-            int count=filtered_count(&browser,type);
+            int count=filtered_count(&g_browser,type);
 
             if(pressed&SCE_CTRL_UP){
                 if(g_file_selected>0) g_file_selected--;
@@ -347,8 +364,8 @@ int main(void){
                 redraw=1;
             }
             if(pressed&SCE_CTRL_SQUARE){
-                refresh_files(&browser);
-                clamp_file_selection(&browser,type);
+                refresh_files(&g_browser);
+                clamp_file_selection(&g_browser,type);
                 redraw=1;
             }
             if(pressed&SCE_CTRL_CIRCLE){
@@ -359,13 +376,13 @@ int main(void){
                 redraw=1;
             }
             if((pressed&SCE_CTRL_TRIANGLE) && count>0){
-                g_delete_index=filtered_index(&browser,type,g_file_selected);
+                g_delete_index=filtered_index(&g_browser,type,g_file_selected);
                 g_delete_return=g_screen;
                 g_screen=SCREEN_DELETE_CONFIRM;
                 redraw=1;
             }
             if((pressed&SCE_CTRL_CROSS) && count>0){
-                BrowserItem *it=selected_filtered(&browser,type);
+                BrowserItem *it=selected_filtered(&g_browser,type);
                 if(it){
                     if(type==ITEM_VPK){
                         char created[MRW_MAX_PATH];
@@ -374,7 +391,7 @@ int main(void){
                             it->path,created,sizeof(created),&g_progress
                         );
                         if(g_last_result==0){
-                            scan_packages(&browser);
+                            scan_packages(&g_browser);
                             snprintf(g_progress.message,sizeof(g_progress.message),
                                 "Created: %s",created);
                         }
@@ -383,7 +400,7 @@ int main(void){
                             it->path,&g_progress
                         );
                         if(g_last_result==0)
-                            scan_packages(&browser);
+                            scan_packages(&g_browser);
                     }
                 }
                 redraw=1;
@@ -398,14 +415,14 @@ int main(void){
                 redraw=1;
             }
             if(pressed&SCE_CTRL_CROSS){
-                if(g_delete_index>=0 && g_delete_index<browser.count){
-                    BrowserItem *it=&browser.items[g_delete_index];
+                if(g_delete_index>=0 && g_delete_index<g_browser.count){
+                    BrowserItem *it=&g_browser.items[g_delete_index];
                     int r=sceIoRemove(it->path);
                     g_last_result=r;
                     if(r>=0){
                         strcpy(g_progress.stage,"Done");
                         strcpy(g_progress.message,"File deleted");
-                        scan_packages(&browser);
+                        scan_packages(&g_browser);
                     } else {
                         strcpy(g_progress.stage,"Error");
                         snprintf(g_progress.message,sizeof(g_progress.message),
@@ -428,16 +445,16 @@ int main(void){
             }
             if(pressed&SCE_CTRL_CIRCLE){
                 g_screen=SCREEN_HOME;
-                settings_save(&settings);
+                settings_save(&g_settings);
                 redraw=1;
             }
             if(pressed&SCE_CTRL_CROSS){
                 if(g_settings_selected==0){
-                    settings.smooth_scroll=!settings.smooth_scroll;
-                    settings_save(&settings);
+                    g_settings.smooth_scroll=!g_settings.smooth_scroll;
+                    settings_save(&g_settings);
                 } else if(g_settings_selected==2){
                     g_screen=SCREEN_HOME;
-                    settings_save(&settings);
+                    settings_save(&g_settings);
                 }
                 redraw=1;
             }
@@ -449,7 +466,7 @@ int main(void){
             }
         }
 
-        if(pressed&SCE_CTRL_START)
+        if((pressed&SCE_CTRL_START) && g_screen==SCREEN_HOME)
             running=0;
 
         /*
@@ -459,7 +476,7 @@ int main(void){
         sceKernelDelayThread(5000);
     }
 
-    settings_save(&settings);
+    settings_save(&g_settings);
     psvDebugScreenShutdown();
     sceKernelExitProcess(0);
     return 0;

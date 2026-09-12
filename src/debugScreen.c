@@ -269,17 +269,11 @@ void psvDebugScreenPresent(void) {
     setup_fb(&fb, g_fb);
 
     /*
-     * Draw only into the back buffer. Queue it for the next VBlank,
-     * wait until the swap completes, then switch drawing to the other
-     * framebuffer. This removes the single-buffer tearing/flicker.
-     */
-    /*
-     * Synchronize the swap to VBlank. We only call Present when the UI has
-     * changed, so the front buffer remains stable between input events.
+     * The complete UI is already rendered into the back buffer.
+     * Swap only at VBlank, and do not queue repeated frames.
      */
     sceDisplayWaitVblankStart();
-    sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_NEXTFRAME);
-    sceDisplayWaitVblankStart();
+    sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_IMMEDIATE);
 
     g_draw_index ^= 1;
     g_fb = g_buffers[g_draw_index];

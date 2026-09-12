@@ -5,7 +5,7 @@
 #include <psp2/io/dirent.h>
 #include <psp2/io/stat.h>
 #include <psp2/ctrl.h>
-#include <psp2/debugScreen.h>
+#include "debugScreen.h"
 #include <stdio.h>
 #include <string.h>
 #include "../include/app.h"

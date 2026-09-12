@@ -18,7 +18,7 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(VITA_APP_NAME "MrWrack PKG Converter")
 set(VITA_TITLEID "MRWPKG001")
-set(VITA_VERSION "01.50")
+set(VITA_VERSION "01.51")
 
 add_executable(${PROJECT_NAME}
   src/main.c
@@ -32,6 +32,7 @@ add_executable(${PROJECT_NAME}
   src/sha256.c
   src/mrw_pkg.c
   src/install_flow.c
+  src/debugScreen.c
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -47,7 +48,7 @@ target_link_libraries(${PROJECT_NAME}
 
 vita_create_self(eboot.bin ${PROJECT_NAME} UNSAFE)
 
-vita_create_vpk(MrWrack-PKG-Converter-v1.5-vita-test.vpk ${VITA_TITLEID} eboot.bin
+vita_create_vpk(MrWrack-PKG-Converter-v1.5.1-debugscreen-fix.vpk ${VITA_TITLEID} eboot.bin
   VERSION ${VITA_VERSION}
   NAME ${VITA_APP_NAME}
   FILE sce_sys/icon0.png sce_sys/icon0.png

@@ -41,3 +41,5 @@ typedef struct {
     AccentColor accent;
     int smooth_scroll;
 } Settings;
+
+/* Install progress is declared in mrw_pkg.h. */

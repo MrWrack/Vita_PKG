@@ -1,18 +1,23 @@
-# v1.1 status
+# v1.4 Test status
 
-Implemented:
-- clean GitHub workflow at `.github/workflows/build.yml`
-- VitaSDK VPK artifact build
-- correct package temp path owned by MrWrack PKG Converter
-- app tree validation
-- PAF load/unload sequence
-- ScePromoterUtil init/promote/exit sequence
+Ready for GitHub compile test:
+- MRW-PKG v2 reader
+- per-file SHA-256
+- exact relative extraction
+- traversal blocking
+- recursive temp cleanup
+- fresh head.bin every install
+- SFO TITLE_ID / CONTENT_ID parsing
+- fake-package HMAC generation
+- PromoterUtil backend
 - no auto-launch
-- third-party GPL attribution
+- matching PC test packer
+- GitHub package-format self-test
+- single GitHub workflow
 
-Remaining before final on-device installer:
-- port MRW-PKG v2 extraction + SHA-256 verification into refactored tree
-- incorporate a GPL-compatible head.bin template
-- patch TITLE_ID / CONTENT_ID into head.bin
-- calculate required package HMAC fields
-- on-device install test
+Still requires real validation:
+- GitHub VitaSDK compile result
+- PS Vita install of the converter VPK
+- MRW-PKG promotion on hardware
+- full rendered UI/progress layer
+- installed-app list population

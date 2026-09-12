@@ -1,10 +1,8 @@
 # Third-party notices
 
-The homebrew package promotion design in `src/installer.c` is adapted from
-VitaShell by TheOfficialFloW, licensed under GPL-3.0.
-
-Source:
+VitaShell by TheOfficialFloW is GPL-3.0 licensed:
 https://github.com/TheOfficialFloW/VitaShell
 
-This project must be distributed in compliance with the GPL-3.0 terms when
-GPL-covered VitaShell code/resources are incorporated.
+This project uses VitaShell's compatible package-promotion design. GitHub Actions
+fetches VitaShell's GPL `resources/head.bin` template during the build. The
+corresponding GPL-3.0 license is included in `COPYING`.

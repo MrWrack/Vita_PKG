@@ -1,20 +1,15 @@
-# Upload to GitHub
+# First test build
 
-Upload this whole project folder to your GitHub repository.
+Upload this entire project to GitHub.
 
-Project structure includes:
-
-- `.github/workflows/build.yml`
-- `src/`
-- `include/`
-- `sce_sys/`
-- `docs/`
-- `CMakeLists.txt`
-- `README.md`
-
-There is only one GitHub Actions workflow file, located at:
-
+Workflow:
 `.github/workflows/build.yml`
 
-After uploading:
-GitHub -> Actions -> Build MrWrack PKG Converter -> Run workflow
+Then:
+1. Open Actions
+2. Run "Build MrWrack PKG Converter"
+3. Download the `MrWrack-PKG-Converter-v1.3-test` artifact
+4. Install the generated VPK on the Vita
+5. Test only with a homebrew MRW-PKG you own/control
+
+Installation never automatically launches the installed app.

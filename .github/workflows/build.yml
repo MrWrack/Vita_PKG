@@ -109,7 +109,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v1.5.6-livearea-spec-fix-VPK
+          name: MrWrack-PKG-Converter-v1.6-screen-renderer-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

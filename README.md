@@ -1,36 +1,27 @@
-# MrWrack PKG Converter v2.1
+# MrWrack PKG Converter v2.2
 
-## Main controls
+This build specifically targets VitaShell installation error `0x8010113D`.
 
-- D-pad: navigate
-- X: select
-- Triangle: delete selected VPK/PKG (with confirmation)
-- Square: refresh
-- Circle: back
-- Start: exit
+## LiveArea formats
+- icon0.png: 128x128, 8-bit indexed PNG, no alpha
+- pic0.png: 960x544, 8-bit indexed PNG, no alpha
+- bg0.png: 840x500, 8-bit indexed PNG, no alpha
+- startup.png: 280x158, 8-bit RGBA
+
+The icon motif remains approximately 120x120 inside the 128x128 canvas, but the
+outer margin is an opaque background rather than transparent alpha.
+
+## Controls
+- Triangle = Delete
+- Square = Refresh
+- Circle = Back
+- X = Select / Convert / Install
+- Start = Exit
 
 ## Menus
-
+- Home
 - VPK Files / Convert
 - PKG Files / Install
 - Settings
 - About
 - Exit
-
-## VPK -> PKG
-
-Choose `VPK Files / Convert`, select a `.vpk`, then press X.
-The custom MRW-PKG v2 file is written to:
-
-`ux0:/data/MrWrackPKG/pkg/`
-
-## LiveArea icon
-
-`icon0.png` is:
-- PNG
-- 128 x 128 pixels
-- 8-bit RGBA
-- transparent outer margin
-- motif approximately 120 x 120 pixels
-
-The GitHub validator checks this exact format.

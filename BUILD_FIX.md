@@ -1,11 +1,15 @@
-# v1.4.2 Build Fix
+# v1.4.3 Build Fix
 
 GitHub Actions error:
-`implicit declaration of function 'sceIoMkdir'`
+- incompatible pointer type in `sceSysmoduleLoadModuleInternalWithArg`
+- incompatible pointer type in `sceSysmoduleUnloadModuleInternalWithArg`
 
-Correct VitaSDK declarations:
-- `sceIoMkdir`, `sceIoRmdir`, `sceIoGetstat` -> `<psp2/io/stat.h>`
-- `sceIoDopen`, `sceIoDread`, `sceIoDclose` -> `<psp2/io/dirent.h>`
-- file open/read/write/remove -> `<psp2/io/fcntl.h>`
+Current VitaSDK signature expects:
+`const SceSysmoduleOpt *option`
 
-v1.4.2 adds the correct `stat.h` include to every affected source file.
+Fix:
+- `load_paf()` now passes `NULL` for the option argument
+- `unload_paf()` now passes `NULL` for the option argument
+- old `uint32_t` option buffer removed
+
+The PAF argument array itself is kept.

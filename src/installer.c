@@ -60,11 +60,35 @@ int mrw_make_head_bin(void){
     r=write_file(HEAD_BIN,h,hs);free(h);return r;
 }
 static int load_paf(void){
-    uint32_t a[]={0x180000,(uint32_t)-1,(uint32_t)-1,1,(uint32_t)-1,(uint32_t)-1};
-    int result=-1;uint32_t b[4]={sizeof(b),(uint32_t)&result,(uint32_t)-1,(uint32_t)-1};
-    return sceSysmoduleLoadModuleInternalWithArg(SCE_SYSMODULE_INTERNAL_PAF,sizeof(a),a,b);
+    uint32_t a[] = {
+        0x180000,
+        (uint32_t)-1,
+        (uint32_t)-1,
+        1,
+        (uint32_t)-1,
+        (uint32_t)-1
+    };
+
+    /*
+     * Current VitaSDK expects the fourth parameter to be:
+     *   const SceSysmoduleOpt *option
+     * NULL selects the default options.
+     */
+    return sceSysmoduleLoadModuleInternalWithArg(
+        SCE_SYSMODULE_INTERNAL_PAF,
+        sizeof(a),
+        a,
+        NULL
+    );
 }
-static int unload_paf(void){uint32_t b=0;return sceSysmoduleUnloadModuleInternalWithArg(SCE_SYSMODULE_INTERNAL_PAF,0,NULL,&b);}
+static int unload_paf(void){
+    return sceSysmoduleUnloadModuleInternalWithArg(
+        SCE_SYSMODULE_INTERNAL_PAF,
+        0,
+        NULL,
+        NULL
+    );
+}
 int mrw_promote_package_temp(void){
     int r=mrw_validate_package_temp();if(r<0)return r;r=mrw_make_head_bin();if(r<0)return r;
     r=load_paf();if(r<0)return r;r=sceSysmoduleLoadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);

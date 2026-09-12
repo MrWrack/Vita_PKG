@@ -8,10 +8,13 @@
 #define FB_W 960
 #define FB_H 544
 #define FB_PITCH 960
+#define FB_BYTES (2 * 1024 * 1024)
 #define GLYPH_W 8
 #define GLYPH_H 12
 
-static SceUID g_memblock = -1;
+static SceUID g_memblock[2] = { -1, -1 };
+static uint32_t *g_buffers[2] = { NULL, NULL };
+static int g_draw_index = 1;
 static uint32_t *g_fb = NULL;
 static uint32_t g_fg = COLOR_WHITE;
 static int g_x = 16;
@@ -115,7 +118,6 @@ static const unsigned char g_font[95][12] = {
   {0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x06,0x00,0x00,0x00,0x00}, /* 126 */
 };
 
-
 static uint32_t normalize_color(uint32_t c) {
     if ((c & 0xFF000000u) == 0)
         c |= 0xFF000000u;
@@ -133,12 +135,12 @@ static void draw_char(int x, int y, char ch) {
     if (c < 32 || c > 126)
         c = '?';
     const unsigned char *rows = g_font[c - 32];
+
     for (int yy = 0; yy < GLYPH_H; ++yy) {
         unsigned char bits = rows[yy];
         for (int xx = 0; xx < GLYPH_W; ++xx) {
-            if (bits & (1u << (7 - xx))) {
+            if (bits & (1u << (7 - xx)))
                 put_pixel(x + xx, y + yy, g_fg);
-            }
         }
     }
 }
@@ -159,72 +161,85 @@ static void draw_text(const char *s) {
             g_x += GLYPH_W * 4;
             continue;
         }
+
         if (g_x + GLYPH_W >= FB_W - 8) {
             g_x = 16;
             g_y += GLYPH_H + 2;
         }
         if (g_y + GLYPH_H >= FB_H - 8)
             return;
+
         draw_char(g_x, g_y, ch);
         g_x += GLYPH_W;
     }
 }
 
-int psvDebugScreenInit(void) {
-    const SceSize fb_size = 2 * 1024 * 1024;
-    g_memblock = sceKernelAllocMemBlock(
-        "MrWrackFrameBuffer",
-        SCE_KERNEL_MEMBLOCK_TYPE_USER_CDRAM_RW,
-        fb_size,
-        NULL
-    );
-    if (g_memblock < 0)
-        return g_memblock;
+static void setup_fb(SceDisplayFrameBuf *fb, uint32_t *base) {
+    memset(fb, 0, sizeof(*fb));
+    fb->size = sizeof(*fb);
+    fb->base = base;
+    fb->pitch = FB_PITCH;
+    fb->pixelformat = SCE_DISPLAY_PIXELFORMAT_A8B8G8R8;
+    fb->width = FB_W;
+    fb->height = FB_H;
+}
 
-    void *base = NULL;
-    int r = sceKernelGetMemBlockBase(g_memblock, &base);
-    if (r < 0) {
-        sceKernelFreeMemBlock(g_memblock);
-        g_memblock = -1;
-        return r;
+int psvDebugScreenInit(void) {
+    for (int i = 0; i < 2; ++i) {
+        g_memblock[i] = sceKernelAllocMemBlock(
+            i == 0 ? "MrWrackFB0" : "MrWrackFB1",
+            SCE_KERNEL_MEMBLOCK_TYPE_USER_CDRAM_RW,
+            FB_BYTES,
+            NULL
+        );
+        if (g_memblock[i] < 0)
+            return g_memblock[i];
+
+        void *base = NULL;
+        int r = sceKernelGetMemBlockBase(g_memblock[i], &base);
+        if (r < 0)
+            return r;
+        g_buffers[i] = (uint32_t *)base;
+
+        for (int p = 0; p < FB_W * FB_H; ++p)
+            g_buffers[i][p] = COLOR_BLACK;
     }
-    g_fb = (uint32_t *)base;
 
     SceDisplayFrameBuf fb;
-    memset(&fb, 0, sizeof(fb));
-    fb.size = sizeof(fb);
-    fb.base = g_fb;
-    fb.pitch = FB_PITCH;
-    fb.pixelformat = SCE_DISPLAY_PIXELFORMAT_A8B8G8R8;
-    fb.width = FB_W;
-    fb.height = FB_H;
-
-    r = sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_IMMEDIATE);
+    setup_fb(&fb, g_buffers[0]);
+    int r = sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_IMMEDIATE);
     if (r < 0)
         return r;
 
-    psvDebugScreenClear(COLOR_BLACK);
-    psvDebugScreenPresent();
+    g_draw_index = 1;
+    g_fb = g_buffers[g_draw_index];
+    g_x = 16;
+    g_y = 16;
     return 0;
 }
 
 void psvDebugScreenShutdown(void) {
-    if (g_memblock >= 0) {
-        sceKernelFreeMemBlock(g_memblock);
-        g_memblock = -1;
-        g_fb = NULL;
+    for (int i = 0; i < 2; ++i) {
+        if (g_memblock[i] >= 0) {
+            sceKernelFreeMemBlock(g_memblock[i]);
+            g_memblock[i] = -1;
+        }
+        g_buffers[i] = NULL;
     }
+    g_fb = NULL;
 }
 
 void psvDebugScreenClear(uint32_t color) {
     if (!g_fb)
         return;
+
     color = normalize_color(color);
     for (int y = 0; y < FB_H; ++y) {
         uint32_t *row = g_fb + y * FB_PITCH;
         for (int x = 0; x < FB_W; ++x)
             row[x] = color;
     }
+
     g_x = 16;
     g_y = 16;
 }
@@ -235,11 +250,13 @@ void psvDebugScreenSetFgColor(uint32_t color) {
 
 int psvDebugScreenPrintf(const char *format, ...) {
     char buf[1024];
+
     va_list ap;
     va_start(ap, format);
     int n = vsnprintf(buf, sizeof(buf), format, ap);
     va_end(ap);
-    buf[sizeof(buf)-1] = 0;
+
+    buf[sizeof(buf) - 1] = 0;
     draw_text(buf);
     return n;
 }
@@ -249,14 +266,21 @@ void psvDebugScreenPresent(void) {
         return;
 
     SceDisplayFrameBuf fb;
-    memset(&fb, 0, sizeof(fb));
-    fb.size = sizeof(fb);
-    fb.base = g_fb;
-    fb.pitch = FB_PITCH;
-    fb.pixelformat = SCE_DISPLAY_PIXELFORMAT_A8B8G8R8;
-    fb.width = FB_W;
-    fb.height = FB_H;
+    setup_fb(&fb, g_fb);
 
+    /*
+     * Draw only into the back buffer. Queue it for the next VBlank,
+     * wait until the swap completes, then switch drawing to the other
+     * framebuffer. This removes the single-buffer tearing/flicker.
+     */
+    /*
+     * Synchronize the swap to VBlank. We only call Present when the UI has
+     * changed, so the front buffer remains stable between input events.
+     */
+    sceDisplayWaitVblankStart();
     sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_NEXTFRAME);
     sceDisplayWaitVblankStart();
+
+    g_draw_index ^= 1;
+    g_fb = g_buffers[g_draw_index];
 }

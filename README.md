@@ -1,17 +1,20 @@
-# MrWrack PKG Converter v1.5 Vita Test
+# MrWrack PKG Converter v1.8 Vita Test
 
-This version is aimed specifically at the first real hardware debugging pass.
+## Controls
 
-Changes after the Vita test:
-- clearer MrWrack Converter start screen instead of an ambiguous file/debug view
-- full install status shown on screen
-- errors shown as both signed integer and complete hexadecimal result
-- explicit scan paths on empty list
-- X only installs MRW-PKG
-- Square remains manual launch only
-- no automatic launch
-- larger MW + crown LiveArea icon
-- dynamic GitHub VPK verification/upload remains enabled
+- D-pad Up/Down: navigate
+- X: select
+  - on VPK: convert VPK -> MRW-PKG
+  - on MRW-PKG: install
+- Triangle: delete selected VPK/PKG file
+- Square: refresh/rescan
+- Circle: back
+- START: exit app
 
-The previous hardware test confirmed that the VPK builds, installs and starts.
-This build is intended to identify the exact runtime/install error next.
+Converted MRW-PKG files are saved to:
+
+`ux0:/data/MrWrackPKG/pkg/`
+
+Delete only applies to VPK/PKG files. Installed apps are not deleted by Triangle.
+
+The double-buffered renderer from v1.7 is retained to reduce flicker.

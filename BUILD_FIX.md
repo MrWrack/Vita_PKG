@@ -1,15 +1,14 @@
-# v1.4.3 Build Fix
+# v1.4.4 Workflow Fix
 
-GitHub Actions error:
-- incompatible pointer type in `sceSysmoduleLoadModuleInternalWithArg`
-- incompatible pointer type in `sceSysmoduleUnloadModuleInternalWithArg`
+The `Build VPK` step is now succeeding.
 
-Current VitaSDK signature expects:
-`const SceSysmoduleOpt *option`
+The previous failure happened only because `Verify VPK exists` was still checking
+an older hardcoded VPK filename.
 
-Fix:
-- `load_paf()` now passes `NULL` for the option argument
-- `unload_paf()` now passes `NULL` for the option argument
-- old `uint32_t` option buffer removed
+v1.4.4 fixes this permanently:
+- finds the generated `build/*.vpk` dynamically
+- verifies that it exists
+- stores the actual path in `GITHUB_ENV`
+- uploads that exact VPK
 
-The PAF argument array itself is kept.
+Future version-name changes should no longer break Verify/Upload.

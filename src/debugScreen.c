@@ -12,9 +12,7 @@
 #define GLYPH_W 8
 #define GLYPH_H 12
 
-static SceUID g_memblock[2] = { -1, -1 };
-static uint32_t *g_buffers[2] = { NULL, NULL };
-static int g_draw_index = 1;
+static SceUID g_memblock = -1;
 static uint32_t *g_fb = NULL;
 static uint32_t g_fg = COLOR_WHITE;
 static int g_x = 16;
@@ -135,7 +133,6 @@ static void draw_char(int x, int y, char ch) {
     if (c < 32 || c > 126)
         c = '?';
     const unsigned char *rows = g_font[c - 32];
-
     for (int yy = 0; yy < GLYPH_H; ++yy) {
         unsigned char bits = rows[yy];
         for (int xx = 0; xx < GLYPH_W; ++xx) {
@@ -174,10 +171,10 @@ static void draw_text(const char *s) {
     }
 }
 
-static void setup_fb(SceDisplayFrameBuf *fb, uint32_t *base) {
+static void setup_fb(SceDisplayFrameBuf *fb) {
     memset(fb, 0, sizeof(*fb));
     fb->size = sizeof(*fb);
-    fb->base = base;
+    fb->base = g_fb;
     fb->pitch = FB_PITCH;
     fb->pixelformat = SCE_DISPLAY_PIXELFORMAT_A8B8G8R8;
     fb->width = FB_W;
@@ -185,46 +182,50 @@ static void setup_fb(SceDisplayFrameBuf *fb, uint32_t *base) {
 }
 
 int psvDebugScreenInit(void) {
-    for (int i = 0; i < 2; ++i) {
-        g_memblock[i] = sceKernelAllocMemBlock(
-            i == 0 ? "MrWrackFB0" : "MrWrackFB1",
-            SCE_KERNEL_MEMBLOCK_TYPE_USER_CDRAM_RW,
-            FB_BYTES,
-            NULL
-        );
-        if (g_memblock[i] < 0)
-            return g_memblock[i];
+    /*
+     * Deliberately use ONE 2 MB CDRAM framebuffer.
+     * Previous builds allocated two 2 MB blocks and could fail at startup
+     * on real hardware because of available CDRAM / fragmentation.
+     */
+    g_memblock = sceKernelAllocMemBlock(
+        "MrWrackDisplay",
+        SCE_KERNEL_MEMBLOCK_TYPE_USER_CDRAM_RW,
+        FB_BYTES,
+        NULL
+    );
+    if (g_memblock < 0)
+        return g_memblock;
 
-        void *base = NULL;
-        int r = sceKernelGetMemBlockBase(g_memblock[i], &base);
-        if (r < 0)
-            return r;
-        g_buffers[i] = (uint32_t *)base;
-
-        for (int p = 0; p < FB_W * FB_H; ++p)
-            g_buffers[i][p] = COLOR_BLACK;
+    void *base = NULL;
+    int r = sceKernelGetMemBlockBase(g_memblock, &base);
+    if (r < 0) {
+        sceKernelFreeMemBlock(g_memblock);
+        g_memblock = -1;
+        return r;
     }
 
-    SceDisplayFrameBuf fb;
-    setup_fb(&fb, g_buffers[0]);
-    int r = sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_IMMEDIATE);
-    if (r < 0)
-        return r;
+    g_fb = (uint32_t *)base;
+    psvDebugScreenClear(COLOR_BLACK);
 
-    g_draw_index = 1;
-    g_fb = g_buffers[g_draw_index];
-    g_x = 16;
-    g_y = 16;
+    SceDisplayFrameBuf fb;
+    setup_fb(&fb);
+
+    r = sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_NEXTFRAME);
+    if (r < 0) {
+        sceKernelFreeMemBlock(g_memblock);
+        g_memblock = -1;
+        g_fb = NULL;
+        return r;
+    }
+
+    sceDisplayWaitVblankStart();
     return 0;
 }
 
 void psvDebugScreenShutdown(void) {
-    for (int i = 0; i < 2; ++i) {
-        if (g_memblock[i] >= 0) {
-            sceKernelFreeMemBlock(g_memblock[i]);
-            g_memblock[i] = -1;
-        }
-        g_buffers[i] = NULL;
+    if (g_memblock >= 0) {
+        sceKernelFreeMemBlock(g_memblock);
+        g_memblock = -1;
     }
     g_fb = NULL;
 }
@@ -256,7 +257,7 @@ int psvDebugScreenPrintf(const char *format, ...) {
     int n = vsnprintf(buf, sizeof(buf), format, ap);
     va_end(ap);
 
-    buf[sizeof(buf) - 1] = 0;
+    buf[sizeof(buf)-1] = 0;
     draw_text(buf);
     return n;
 }
@@ -266,15 +267,12 @@ void psvDebugScreenPresent(void) {
         return;
 
     SceDisplayFrameBuf fb;
-    setup_fb(&fb, g_fb);
+    setup_fb(&fb);
 
     /*
-     * The complete UI is already rendered into the back buffer.
-     * Swap only at VBlank, and do not queue repeated frames.
+     * main.c redraws only when UI state changes.
+     * Single framebuffer + VBlank avoids the old alternating/ghost frames.
      */
+    sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_NEXTFRAME);
     sceDisplayWaitVblankStart();
-    sceDisplaySetFrameBuf(&fb, SCE_DISPLAY_SETBUF_IMMEDIATE);
-
-    g_draw_index ^= 1;
-    g_fb = g_buffers[g_draw_index];
 }

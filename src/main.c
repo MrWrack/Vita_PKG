@@ -30,6 +30,24 @@ static int g_last_result = 0;
 static BrowserList g_browser;
 static Settings g_settings;
 
+static void startup_log(const char *text){
+    SceUID fd=sceIoOpen(
+        "ux0:/MrWrack-startup.log",
+        SCE_O_WRONLY|SCE_O_CREAT|SCE_O_APPEND,
+        0666
+    );
+    if(fd>=0){
+        sceIoWrite(fd,text,strlen(text));
+        sceIoWrite(fd,"\n",1);
+        sceIoClose(fd);
+    }
+}
+
+static void exit_log(const char *reason){
+    startup_log(reason);
+}
+
+
 typedef enum {
     SCREEN_HOME = 0,
     SCREEN_VPK,
@@ -115,7 +133,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v2.3\n");
+    printf("MRWRACK PKG CONVERTER  v2.5\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -232,7 +250,7 @@ static void draw_about(void){
     psvDebugScreenSetFgColor(COLOR_GREEN);
     printf("MrWrack PKG Converter\n\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
-    printf("Version: 2.3\n");
+    printf("Version: 2.5\n");
     printf("Title ID: MRWPKG001\n\n");
     printf("Features:\n");
     printf("  - VPK -> MRW-PKG v2 conversion\n");
@@ -284,18 +302,35 @@ static void refresh_files(BrowserList *browser){
 
 int main(void){
     ensure_dirs();
+    sceIoRemove("ux0:/MrWrack-startup.log");
+    startup_log("1: main entered");
+    startup_log("1b: root logger working");
 
     int screen_r=psvDebugScreenInit();
-    if(screen_r<0)
+    if(screen_r<0){
+        startup_log("2: framebuffer init FAILED");
+        sceKernelDelayThread(3000000);
         sceKernelExitProcess(screen_r);
-
-    memset(&g_settings,0,sizeof(g_settings));
-    settings_load(&g_settings);
-
-    memset(&g_browser,0,sizeof(g_browser));
-    scan_packages(&g_browser);
+    }
+    startup_log("2: framebuffer init OK");
 
     memset(&g_progress,0,sizeof(g_progress));
+    strcpy(g_progress.stage,"Starting");
+    strcpy(g_progress.message,"Loading MrWrack PKG Converter");
+
+    memset(&g_browser,0,sizeof(g_browser));
+    memset(&g_settings,0,sizeof(g_settings));
+
+    /*
+     * Draw the Home screen BEFORE loading settings or scanning storage.
+     * This keeps startup independent of filesystem contents.
+     */
+    draw_ui(&g_browser,&g_settings);
+    startup_log("3: first UI frame shown");
+
+    settings_load(&g_settings);
+    startup_log("4: settings loaded");
+
     strcpy(g_progress.stage,"Ready");
     strcpy(g_progress.message,"Choose VPK Files or PKG Files");
 
@@ -315,8 +350,12 @@ int main(void){
     unsigned last=startup_pad.buttons;
     int redraw=1;
     int running=1;
+    unsigned heartbeat=0;
+    startup_log("7: entering main loop");
 
     while(running){
+        heartbeat++;
+        if((heartbeat % 1000)==0) startup_log("HEARTBEAT: main loop alive");
         if(redraw){
             draw_ui(&g_browser,&g_settings);
             redraw=0;
@@ -339,8 +378,20 @@ int main(void){
                 redraw=1;
             }
             if(pressed&SCE_CTRL_CROSS){
-                if(g_home_selected==0){ g_screen=SCREEN_VPK; g_file_selected=0; }
-                else if(g_home_selected==1){ g_screen=SCREEN_PKG; g_file_selected=0; }
+                if(g_home_selected==0){
+                    startup_log("5: opening VPK menu");
+                    scan_packages(&g_browser);
+                    startup_log("6: VPK scan complete");
+                    g_screen=SCREEN_VPK;
+                    g_file_selected=0;
+                }
+                else if(g_home_selected==1){
+                    startup_log("5: opening PKG menu");
+                    scan_packages(&g_browser);
+                    startup_log("6: PKG scan complete");
+                    g_screen=SCREEN_PKG;
+                    g_file_selected=0;
+                }
                 else if(g_home_selected==2){ g_screen=SCREEN_SETTINGS; }
                 else if(g_home_selected==3){ g_screen=SCREEN_ABOUT; }
                 else running=0;
@@ -466,8 +517,9 @@ int main(void){
             }
         }
 
-        if((pressed&SCE_CTRL_START) && g_screen==SCREEN_HOME)
-            running=0;
+        if(pressed&SCE_CTRL_START){
+            exit_log("INPUT: START pressed (ignored in v2.5)");
+        }
 
         /*
          * No continuous framebuffer redraw.
@@ -477,7 +529,10 @@ int main(void){
     }
 
     settings_save(&g_settings);
+    exit_log("8: left main loop");
     psvDebugScreenShutdown();
+    exit_log("9: framebuffer shutdown complete");
+    sceKernelDelayThread(1000000);
     sceKernelExitProcess(0);
     return 0;
 }

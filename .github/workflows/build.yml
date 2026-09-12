@@ -37,7 +37,23 @@ jobs:
 
       - name: Validate LiveArea PNGs
         run: |
-          python3 scripts/validate_livearea_pngs.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          bad = []
+          for p in Path('sce_sys').rglob('*.png'):
+              im = Image.open(p)
+              if im.mode != 'P':
+                  bad.append(f"{p}: mode={im.mode}, expected indexed palette mode P")
+              if p.name == 'icon0.png' and im.size != (120, 120):
+                  bad.append(f"{p}: size={im.size}, expected 120x120")
+          if bad:
+              print("LiveArea PNG validation FAILED:")
+              for x in bad:
+                  print(" -", x)
+              raise SystemExit(1)
+          print("LiveArea PNG validation: OK")
+          PY
 
       - name: Configure
         run: |
@@ -59,7 +75,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v1.5.3-icon120-fix-VPK
+          name: MrWrack-PKG-Converter-v1.5.4-workflow-inline-validation-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

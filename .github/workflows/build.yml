@@ -70,9 +70,9 @@ jobs:
                       f"{p}: PNG color type={color_type}, expected indexed/palette type 3"
                   )
 
-              if p.name == "icon0.png" and (width, height) != (120, 120):
+              if p.name == "icon0.png" and (width, height) != (128, 128):
                   bad.append(
-                      f"{p}: size={width}x{height}, expected 120x120"
+                      f"{p}: size={width}x{height}, expected 128x128"
                   )
 
               if bit_depth not in (1, 2, 4, 8):
@@ -109,7 +109,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v1.5.5-no-pil-workflow-fix-VPK
+          name: MrWrack-PKG-Converter-v1.5.6-livearea-spec-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

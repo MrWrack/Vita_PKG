@@ -1,0 +1,48 @@
+name: Build MrWrack PKG Converter
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-vita:
+    name: Build PS Vita VPK
+    runs-on: ubuntu-latest
+
+    container:
+      image: vitasdk/vitasdk:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show VitaSDK
+        run: |
+          echo "VITASDK=$VITASDK"
+          cmake --version
+          arm-vita-eabi-gcc --version
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VPK
+        run: |
+          cmake --build build --parallel 2
+
+      - name: Verify VPK exists
+        run: |
+          test -f build/MrWrack-PKG-Converter-v1.1-alpha.vpk
+          ls -lh build/MrWrack-PKG-Converter-v1.1-alpha.vpk
+
+      - name: Upload VPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MrWrack-PKG-Converter-v1.1-alpha-VPK
+          path: build/MrWrack-PKG-Converter-v1.1-alpha.vpk
+          if-no-files-found: error
+          retention-days: 30

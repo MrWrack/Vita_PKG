@@ -26,6 +26,15 @@ jobs:
           cmake --version
           arm-vita-eabi-gcc --version
 
+      - name: MRW-PKG format self-test
+        run: |
+          python3 tools/test_mrw_pkg_v2.py
+
+      - name: Fetch GPL head.bin template
+        run: |
+          chmod +x scripts/fetch_vitashell_resource.sh
+          ./scripts/fetch_vitashell_resource.sh
+
       - name: Configure
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -36,13 +45,13 @@ jobs:
 
       - name: Verify VPK exists
         run: |
-          test -f build/MrWrack-PKG-Converter-v1.1-alpha.vpk
-          ls -lh build/MrWrack-PKG-Converter-v1.1-alpha.vpk
+          test -f build/MrWrack-PKG-Converter-v1.4.1-build-fix.vpk
+          ls -lh build/MrWrack-PKG-Converter-v1.4.1-build-fix.vpk
 
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v1.1-alpha-VPK
-          path: build/MrWrack-PKG-Converter-v1.1-alpha.vpk
+          name: MrWrack-PKG-Converter-v1.4.1-build-fix-VPK
+          path: build/MrWrack-PKG-Converter-v1.4.1-build-fix.vpk
           if-no-files-found: error
           retention-days: 30

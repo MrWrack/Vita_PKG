@@ -121,7 +121,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v2.2-install-fix-VPK
+          name: MrWrack-PKG-Converter-v2.3-startup-crash-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30

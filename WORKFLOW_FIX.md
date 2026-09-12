@@ -1,8 +1,17 @@
-# v1.5.4 Workflow Fix
+# v1.5.5 Workflow Fix
 
-GitHub could not find `scripts/validate_livearea_pngs.py`.
+GitHub Actions failed with:
+
+`ModuleNotFoundError: No module named 'PIL'`
+
+The VitaSDK container does not provide Pillow/PIL.
 
 Fix:
-- LiveArea PNG validation is embedded directly in `.github/workflows/build.yml`.
-- No separate validation script is required.
-- `icon0.png` is still checked for indexed PNG mode and exact 120x120 size.
+- removed all PIL/Pillow usage from the GitHub workflow
+- PNG validation now uses Python's built-in `struct` module only
+- reads the PNG IHDR header directly
+- verifies `icon0.png` is 120x120
+- verifies PNG color type 3 (indexed/palette)
+- no external Python package installation is required
+
+The build can now continue directly to CMake after the validation step.

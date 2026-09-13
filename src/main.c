@@ -140,7 +140,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v3.5\n");
+    printf("MRWRACK PKG CONVERTER  v3.6\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -327,19 +327,33 @@ static void ui_footer(void){
     ui_text(172,505,COLOR_WHITE,"O Back");
     ui_text(286,505,COLOR_WHITE,"[] Refresh");
     ui_text(438,505,COLOR_WHITE,"△ Options");
-    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.5");
+    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.6");
 }
 static void draw_loading_screen(const char *title,const char *file,int install_mode){
-    ui_background();
+    psvDebugScreenClear(0xFF050705u);
+
+    ui_github_octocat_crowned(58,52);
+    ui_mrwrack_logo(104,28);
+    psvDebugScreenFillRect(26,92,908,2,COLOR_NEON);
+
     ui_text(54,132,COLOR_NEON,install_mode?"PKG INSTALL":"VPK CONVERT");
     ui_text(54,166,COLOR_WHITE,title);
     ui_text(54,196,COLOR_DIM,file?file:"");
-    psvDebugScreenFillRect(54,252,852,72,0xFF101411u);
-    psvDebugScreenRect(54,252,852,72,0xFF24452Fu,1);
-    psvDebugScreenFillRect(78,286,804,10,0xFF202820u);
-    psvDebugScreenFillRect(78,286,206,10,COLOR_NEON);
-    ui_text(78,266,COLOR_WHITE,install_mode?"Preparing package installation...":"Reading and converting VPK...");
-    ui_text(78,311,COLOR_DIM,"Please wait. Do not close the application.");
+
+    psvDebugScreenFillRect(54,244,852,90,0xFF101411u);
+    psvDebugScreenRect(54,244,852,90,0xFF24452Fu,1);
+
+    psvDebugScreenFillRect(78,290,804,10,0xFF202820u);
+    psvDebugScreenFillRect(78,290,240,10,COLOR_NEON);
+
+    ui_text(78,264,COLOR_WHITE,
+            install_mode?"Preparing package installation...":"Reading and converting VPK...");
+    ui_text(78,312,COLOR_DIM,"Please wait. Do not close the application.");
+
+    ui_text(54,390,COLOR_NEON,"MRWRACK");
+    ui_crown(90,352,COLOR_NEON);
+    ui_text(54,420,COLOR_DIM,install_mode?"VERIFY  PREPARE  PROMOTE":"READ  HASH  WRITE MRW-PKG");
+
     psvDebugScreenPresent();
 }
 
@@ -417,17 +431,182 @@ static void ui_card_icon(int x,int y,int w,int h,const char *title,const char *s
     /* Small chevron beside the icon. */
     ui_text(x+w-18,y+31,selected?COLOR_NEON:COLOR_DIM,">");
 }
+
+static void ui_crown(int cx,int top,uint32_t color){
+    /* 5-point neon crown */
+    psvDebugScreenLine(cx-22,top+18,cx-16,top+2,color);
+    psvDebugScreenLine(cx-16,top+2,cx-7,top+13,color);
+    psvDebugScreenLine(cx-7,top+13,cx,top-2,color);
+    psvDebugScreenLine(cx,top-2,cx+7,top+13,color);
+    psvDebugScreenLine(cx+7,top+13,cx+16,top+2,color);
+    psvDebugScreenLine(cx+16,top+2,cx+22,top+18,color);
+    psvDebugScreenLine(cx-22,top+18,cx+22,top+18,color);
+    psvDebugScreenLine(cx-18,top+23,cx+18,top+23,color);
+    psvDebugScreenCircle(cx-16,top+1,2,color);
+    psvDebugScreenCircle(cx,top-3,2,color);
+    psvDebugScreenCircle(cx+16,top+1,2,color);
+}
+
+static void ui_github_octocat_crowned(int cx,int cy){
+    /* Clean monochrome Octocat-inspired mark, drawn only with framebuffer primitives. */
+    uint32_t c=COLOR_NEON;
+
+    psvDebugScreenCircle(cx,cy,24,c);
+    psvDebugScreenCircle(cx,cy,23,c);
+
+    /* Head */
+    psvDebugScreenFillRect(cx-13,cy-10,26,22,c);
+
+    /* Ears */
+    psvDebugScreenLine(cx-13,cy-9,cx-20,cy-19,c);
+    psvDebugScreenLine(cx-20,cy-19,cx-18,cy-5,c);
+    psvDebugScreenLine(cx+13,cy-9,cx+20,cy-19,c);
+    psvDebugScreenLine(cx+20,cy-19,cx+18,cy-5,c);
+
+    /* Body / tail */
+    psvDebugScreenFillRect(cx-7,cy+10,14,12,c);
+    psvDebugScreenLine(cx-7,cy+18,cx-16,cy+21,c);
+    psvDebugScreenLine(cx-16,cy+21,cx-22,cy+16,c);
+
+    ui_crown(cx,cy-43,c);
+}
+
+static void ui_mrwrack_logo(int x,int y){
+    /* MrWrack wordmark + crown. */
+    ui_text(x,y,COLOR_NEON,"MRWRACK");
+    ui_crown(x+35,y-22,COLOR_NEON);
+    ui_text(x,y+22,COLOR_DIM,"PS VITA TOOLS & MORE");
+}
+
+static void ui_vita_silhouette(int x,int y,int w,int h){
+    /* Clean right-side Vita silhouette instead of the old distorted line background. */
+    uint32_t edge=0xFF1C7A38u;
+    uint32_t glow=0xFF0B3518u;
+
+    psvDebugScreenFillRect(x,y,w,h,0xFF071009u);
+    psvDebugScreenRect(x,y,w,h,0xFF24452Fu,1);
+
+    int bx=x+22, by=y+42, bw=w-44, bh=h-118;
+    psvDebugScreenRect(bx,by,bw,bh,edge,2);
+
+    /* screen */
+    psvDebugScreenRect(bx+34,by+22,bw-68,bh-44,glow,1);
+    ui_text(bx+68,by+70,COLOR_DIM,"PS VITA");
+
+    /* left/right controls */
+    psvDebugScreenCircle(bx+16,by+bh/2,10,edge);
+    psvDebugScreenCircle(bx+bw-16,by+bh/2,10,edge);
+    psvDebugScreenCircle(bx+bw-18,by+22,3,edge);
+    psvDebugScreenCircle(bx+bw-9,by+31,3,edge);
+    psvDebugScreenCircle(bx+bw-27,by+31,3,edge);
+    psvDebugScreenCircle(bx+bw-18,by+40,3,edge);
+
+    ui_text(x+32,y+h-58,COLOR_NEON,"MRWRACK");
+    ui_crown(x+w/2,y+h-86,COLOR_NEON);
+    ui_text(x+62,y+h-32,COLOR_DIM,"TOOLS & MORE");
+}
+
+static void ui_icon_vpk(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenRect(cx-12,cy-16,22,30,c,2);
+    psvDebugScreenLine(cx+2,cy-16,cx+10,cy-8,c);
+    psvDebugScreenLine(cx-5,cy-2,cx+5,cy-2,c);
+    psvDebugScreenLine(cx+5,cy-2,cx+1,cy-6,c);
+    psvDebugScreenLine(cx+5,cy-2,cx+1,cy+2,c);
+    psvDebugScreenLine(cx+1,cy+8,cx-9,cy+8,c);
+    psvDebugScreenLine(cx-9,cy+8,cx-5,cy+4,c);
+    psvDebugScreenLine(cx-9,cy+8,cx-5,cy+12,c);
+}
+static void ui_icon_pkg(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenRect(cx-13,cy-11,26,22,c,2);
+    psvDebugScreenLine(cx-13,cy-11,cx,cy-19,c);
+    psvDebugScreenLine(cx,cy-19,cx+13,cy-11,c);
+    psvDebugScreenLine(cx,cy-19,cx,cy+11,c);
+    psvDebugScreenLine(cx+17,cy+1,cx+17,cy+16,c);
+    psvDebugScreenLine(cx+11,cy+10,cx+17,cy+16,c);
+    psvDebugScreenLine(cx+23,cy+10,cx+17,cy+16,c);
+}
+static void ui_icon_game(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenCircle(cx-10,cy,11,c);
+    psvDebugScreenCircle(cx+10,cy,11,c);
+    psvDebugScreenLine(cx-16,cy,cx-6,cy,c);
+    psvDebugScreenLine(cx-11,cy-5,cx-11,cy+5,c);
+    psvDebugScreenCircle(cx+8,cy-3,2,c);
+    psvDebugScreenCircle(cx+14,cy+3,2,c);
+}
+static void ui_icon_homebrew(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenLine(cx-17,cy-2,cx,cy-19,c);
+    psvDebugScreenLine(cx,cy-19,cx+17,cy-2,c);
+    psvDebugScreenRect(cx-12,cy-2,24,20,c,2);
+    psvDebugScreenRect(cx-4,cy+7,8,11,c,1);
+}
+static void ui_icon_search(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenCircle(cx-5,cy-5,13,c);
+    psvDebugScreenLine(cx+5,cy+5,cx+18,cy+18,c);
+    psvDebugScreenLine(cx+7,cy+3,cx+20,cy+16,c);
+}
+static void ui_icon_settings(int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    psvDebugScreenCircle(cx,cy,12,c);
+    psvDebugScreenCircle(cx,cy,4,c);
+    psvDebugScreenFillRect(cx-2,cy-20,4,7,c);
+    psvDebugScreenFillRect(cx-2,cy+13,4,7,c);
+    psvDebugScreenFillRect(cx-20,cy-2,7,4,c);
+    psvDebugScreenFillRect(cx+13,cy-2,7,4,c);
+    psvDebugScreenLine(cx-13,cy-13,cx-8,cy-8,c);
+    psvDebugScreenLine(cx+13,cy-13,cx+8,cy-8,c);
+    psvDebugScreenLine(cx-13,cy+13,cx-8,cy+8,c);
+    psvDebugScreenLine(cx+13,cy+13,cx+8,cy+8,c);
+}
+
+static void ui_draw_menu_icon_v36(int kind,int cx,int cy,int selected){
+    /* Circular icon container. */
+    uint32_t ring=selected?COLOR_NEON:0xFF2C6E3Du;
+    psvDebugScreenCircle(cx,cy,25,ring);
+    psvDebugScreenCircle(cx,cy,24,ring);
+
+    if(kind==0) ui_icon_vpk(cx,cy,selected);
+    else if(kind==1) ui_icon_pkg(cx,cy,selected);
+    else if(kind==2) ui_icon_game(cx,cy,selected);
+    else if(kind==3) ui_icon_homebrew(cx,cy,selected);
+    else if(kind==4) ui_icon_search(cx,cy,selected);
+    else ui_icon_settings(cx,cy,selected);
+}
+
+static void ui_card_v36(int x,int y,int w,int h,const char *title,const char *sub,int selected,int icon_kind){
+    uint32_t border=selected?COLOR_NEON:0xFF24452Fu;
+    uint32_t fill=selected?0xFF0B2212u:0xFF101411u;
+
+    psvDebugScreenFillRect(x,y,w,h,fill);
+    psvDebugScreenRect(x,y,w,h,border,selected?3:1);
+
+    if(selected)
+        psvDebugScreenFillRect(x,y,5,h,COLOR_NEON);
+
+    ui_text(x+20,y+18,selected?COLOR_NEON:COLOR_WHITE,title);
+    ui_text(x+20,y+44,COLOR_DIM,sub);
+
+    /* Larger, clean icon on the right side. */
+    ui_draw_menu_icon_v36(icon_kind,x+w-48,y+h/2,selected);
+}
 static void draw_ui(BrowserList *b, const Settings *s){
-    ui_background();
+    psvDebugScreenClear(0xFF050705u);
+
+    /* Header */
+    ui_github_octocat_crowned(58,52);
+    ui_mrwrack_logo(104,28);
+    ui_text(690,28,COLOR_WHITE,"PLAY  MOD  EXPLORE  CREATE");
+    ui_text(720,52,COLOR_NEON,"BUILT BY PLAYERS FOR PLAYERS");
+    psvDebugScreenFillRect(26,92,908,2,COLOR_NEON);
 
     if(g_screen==SCREEN_HOME){
         const char *titles[6]={
-            "VPK CONVERT",
-            "PKG INSTALL",
-            "GAMES",
-            "HOMEBREW",
-            "SEARCH",
-            "SETTINGS"
+            "VPK CONVERT","PKG INSTALL","GAMES",
+            "HOMEBREW","SEARCH","SETTINGS"
         };
         const char *subs[6]={
             "Convert VPK to MRW-PKG",
@@ -438,24 +617,20 @@ static void draw_ui(BrowserList *b, const Settings *s){
             "App settings"
         };
 
-        int xs[6]={36,318,36,318,36,318};
+        int xs[6]={30,310,30,310,30,310};
         int ys[6]={116,116,226,226,336,336};
 
         for(int i=0;i<6;i++)
-            ui_card_icon(xs[i],ys[i],258,88,titles[i],subs[i],i==g_home_selected,i);
+            ui_card_v36(xs[i],ys[i],260,88,titles[i],subs[i],i==g_home_selected,i);
 
-        psvDebugScreenFillRect(620,116,304,308,0xFF071009u);
-        psvDebugScreenRect(620,116,304,308,0xFF24452Fu,1);
+        /* Right side is now a clean, intentional Vita illustration panel. */
+        ui_vita_silhouette(600,116,330,308);
 
-        ui_text(658,146,COLOR_NEON,"MRWRACK");
-        ui_text(658,174,COLOR_WHITE,"PKG CONVERTER");
-        ui_text(658,206,COLOR_DIM,"Homebrew  Games  Tools");
-        ui_text(658,254,COLOR_WHITE,"PLAY");
-        ui_text(702,280,COLOR_WHITE,"MOD");
-        ui_text(742,306,COLOR_WHITE,"EXPLORE");
-        ui_text(782,332,COLOR_WHITE,"CREATE");
-        ui_text(658,384,COLOR_NEON,"BUILT BY PLAYERS");
-        ui_text(690,406,COLOR_NEON,"FOR PLAYERS");
+        /* Info strip */
+        psvDebugScreenFillRect(30,448,540,35,0xFF0C120Du);
+        psvDebugScreenRect(30,448,540,35,0xFF24452Fu,1);
+        ui_text(48,457,COLOR_WHITE,"MrWrack PKG Converter");
+        ui_text(272,457,COLOR_DIM,"PS Vita tools");
 
         ui_footer();
     }
@@ -481,7 +656,6 @@ static void draw_ui(BrowserList *b, const Settings *s){
             for(int n=first;n<last;n++,row++){
                 int idx=filtered_index(b,type,n);
                 if(idx<0) continue;
-
                 BrowserItem *e=&b->items[idx];
                 int y=190+row*18;
 
@@ -497,10 +671,10 @@ static void draw_ui(BrowserList *b, const Settings *s){
         ui_text(40,118,COLOR_NEON,"SEARCH");
         ui_text(40,144,COLOR_DIM,"Choose category");
 
-        ui_card_icon(60,200,360,100,"HOMEBREW","Installed homebrew",
-                     g_search_category_selected==0,3);
-        ui_card_icon(480,200,360,100,"GAMES","Installed games",
-                     g_search_category_selected==1,2);
+        ui_card_v36(60,200,360,100,"HOMEBREW","Installed homebrew",
+                    g_search_category_selected==0,3);
+        ui_card_v36(480,200,360,100,"GAMES","Installed games",
+                    g_search_category_selected==1,2);
 
         ui_footer();
     }
@@ -540,16 +714,17 @@ static void draw_ui(BrowserList *b, const Settings *s){
     }
     else if(g_screen==SCREEN_SETTINGS){
         ui_text(40,118,COLOR_NEON,"SETTINGS");
-        ui_card_icon(60,190,820,90,"SMOOTH SCROLLING",
-                     s->smooth_scroll?"Enabled":"Disabled",
-                     g_settings_selected==0,5);
+        ui_card_v36(60,190,820,90,"SMOOTH SCROLLING",
+                    s->smooth_scroll?"Enabled":"Disabled",
+                    g_settings_selected==0,5);
         ui_footer();
     }
     else if(g_screen==SCREEN_ABOUT){
         ui_text(40,118,COLOR_NEON,"ABOUT");
-        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.5");
+        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.6");
         ui_text(40,190,COLOR_DIM,"PS Vita homebrew package tools.");
-        ui_text(40,220,COLOR_WHITE,"MrWrack");
+        ui_text(40,220,COLOR_NEON,"MRWRACK");
+        ui_crown(78,180,COLOR_NEON);
         ui_footer();
     }
 
@@ -853,7 +1028,7 @@ int main(void){
         }
 
         if(pressed&SCE_CTRL_START){
-            exit_log("INPUT: START pressed (ignored in v3.5)");
+            exit_log("INPUT: START pressed (ignored in v3.6)");
         }
 
         /*

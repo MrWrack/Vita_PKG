@@ -133,7 +133,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v2.5\n");
+    printf("MRWRACK PKG CONVERTER  v2.7\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -250,7 +250,7 @@ static void draw_about(void){
     psvDebugScreenSetFgColor(COLOR_GREEN);
     printf("MrWrack PKG Converter\n\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
-    printf("Version: 2.5\n");
+    printf("Version: 2.6\n");
     printf("Title ID: MRWPKG001\n\n");
     printf("Features:\n");
     printf("  - VPK -> MRW-PKG v2 conversion\n");
@@ -282,13 +282,74 @@ static void draw_delete_confirm(BrowserList *b){
 }
 
 static void draw_ui(BrowserList *b, const Settings *s){
-    switch(g_screen){
-        case SCREEN_HOME: draw_home(); break;
-        case SCREEN_VPK: draw_file_screen(b,ITEM_VPK); break;
-        case SCREEN_PKG: draw_file_screen(b,ITEM_PKG); break;
-        case SCREEN_SETTINGS: draw_settings(s); break;
-        case SCREEN_ABOUT: draw_about(); break;
-        case SCREEN_DELETE_CONFIRM: draw_delete_confirm(b); break;
+    psvDebugScreenClear(COLOR_BLACK);
+    psvDebugScreenSetFgColor(COLOR_GREEN);
+    psvDebugScreenPrintf("MRWRACK PKG CONVERTER  v2.7\n");
+    psvDebugScreenSetFgColor(COLOR_WHITE);
+    psvDebugScreenPrintf("Homebrew package tools for PS Vita\n");
+    psvDebugScreenSetFgColor(COLOR_GREEN);
+    psvDebugScreenPrintf("------------------------------------------------------------\n");
+
+    if(g_screen==SCREEN_HOME){
+        const char *items[]={"VPK Files / Convert","PKG Files / Install","Settings","About","Exit"};
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("\n MAIN MENU\n\n");
+        for(int i=0;i<5;i++){
+            psvDebugScreenSetFgColor(i==g_home_selected?COLOR_GREEN:COLOR_WHITE);
+            psvDebugScreenPrintf(" %s  %s\n",i==g_home_selected?">":" ",items[i]);
+        }
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("\n\n X Select        D-Pad Navigate\n");
+        psvDebugScreenPrintf(" CIRCLE Back     SQUARE Refresh\n");
+    } else if(g_screen==SCREEN_VPK || g_screen==SCREEN_PKG){
+        int type=(g_screen==SCREEN_VPK)?0:1;
+        int count=filtered_count(b,type);
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("\n %s\n",type==0?"VPK FILES / CONVERT":"PKG FILES / INSTALL");
+        psvDebugScreenSetFgColor(COLOR_GREEN);
+        psvDebugScreenPrintf("------------------------------------------------------------\n\n");
+        if(count<=0){
+            psvDebugScreenSetFgColor(COLOR_WHITE);
+            psvDebugScreenPrintf(" No %s files found.\n\n",type==0?"VPK":"PKG");
+            psvDebugScreenPrintf(" Scan locations:\n  ux0:/downloads/\n  ux0:/pkg/\n  ux0:/data/MrWrackPKG/pkg/\n");
+        } else {
+            int first=g_file_selected-5; if(first<0) first=0;
+            int last=first+10; if(last>count) last=count;
+            for(int n=first;n<last;n++){
+                int idx=filtered_index(b,type,n); if(idx<0) continue;
+                BrowserEntry *e=&b->items[idx];
+                psvDebugScreenSetFgColor(n==g_file_selected?COLOR_GREEN:COLOR_WHITE);
+                psvDebugScreenPrintf(" %s %-42.42s %6.2f MB\n",n==g_file_selected?">":" ",e->name,(double)e->size/1048576.0);
+            }
+            BrowserEntry *sel=selected_filtered(b,type);
+            if(sel){
+                psvDebugScreenSetFgColor(COLOR_GREEN);
+                psvDebugScreenPrintf("\n------------------------------------------------------------\n");
+                psvDebugScreenSetFgColor(COLOR_WHITE);
+                psvDebugScreenPrintf(" Selected: %.45s\n Size: %.2f MB\n Path: %.52s\n",sel->name,(double)sel->size/1048576.0,sel->path);
+            }
+        }
+        psvDebugScreenSetFgColor(COLOR_GREEN);
+        psvDebugScreenPrintf("\n------------------------------------------------------------\n");
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf(" X %s   TRIANGLE Delete   SQUARE Refresh   CIRCLE Back\n",type==0?"Convert":"Install");
+    } else if(g_screen==SCREEN_SETTINGS){
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("\n SETTINGS\n\n Smooth scrolling: %s\n\n X Toggle     CIRCLE Back\n",s->smooth_scroll?"ON":"OFF");
+    } else if(g_screen==SCREEN_ABOUT){
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("\n ABOUT\n\n MrWrack PKG Converter v2.7\n VPK -> MRW-PKG homebrew package tools.\n\n by MrWrack\n\n CIRCLE Back\n");
+    }
+
+    if(g_progress.message[0]){
+        psvDebugScreenSetFgColor(COLOR_GREEN);
+        psvDebugScreenPrintf("\n STATUS: ");
+        psvDebugScreenSetFgColor(COLOR_WHITE);
+        psvDebugScreenPrintf("%.55s\n",g_progress.message);
+    }
+    if(g_last_result<0){
+        psvDebugScreenSetFgColor(COLOR_RED);
+        psvDebugScreenPrintf(" ERROR: %d / 0x%08X\n",g_last_result,(unsigned)g_last_result);
     }
     psvDebugScreenPresent();
 }
@@ -518,7 +579,7 @@ int main(void){
         }
 
         if(pressed&SCE_CTRL_START){
-            exit_log("INPUT: START pressed (ignored in v2.5)");
+            exit_log("INPUT: START pressed (ignored in v2.7)");
         }
 
         /*

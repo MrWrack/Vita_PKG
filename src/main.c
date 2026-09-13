@@ -140,7 +140,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v3.6\n");
+    printf("MRWRACK PKG CONVERTER  v3.7\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -289,6 +289,16 @@ static void draw_delete_confirm(BrowserList *b){
 }
 
 
+
+/* Forward declarations for branded UI helpers.
+   Required because loading/header drawing calls these before their definitions. */
+static void ui_crown(int cx,int top,uint32_t color);
+static void ui_github_octocat_crowned(int cx,int cy);
+static void ui_mrwrack_logo(int x,int y);
+static void ui_vita_silhouette(int x,int y,int w,int h);
+static void ui_draw_menu_icon_v36(int kind,int cx,int cy,int selected);
+static void ui_card_v36(int x,int y,int w,int h,const char *title,const char *sub,int selected,int icon_kind);
+
 static void ui_text(int x,int y,uint32_t color,const char *text){
     psvDebugScreenSetXY(x,y);
     psvDebugScreenSetFgColor(color);
@@ -327,7 +337,7 @@ static void ui_footer(void){
     ui_text(172,505,COLOR_WHITE,"O Back");
     ui_text(286,505,COLOR_WHITE,"[] Refresh");
     ui_text(438,505,COLOR_WHITE,"△ Options");
-    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.6");
+    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.7");
 }
 static void draw_loading_screen(const char *title,const char *file,int install_mode){
     psvDebugScreenClear(0xFF050705u);
@@ -721,7 +731,7 @@ static void draw_ui(BrowserList *b, const Settings *s){
     }
     else if(g_screen==SCREEN_ABOUT){
         ui_text(40,118,COLOR_NEON,"ABOUT");
-        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.6");
+        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.7");
         ui_text(40,190,COLOR_DIM,"PS Vita homebrew package tools.");
         ui_text(40,220,COLOR_NEON,"MRWRACK");
         ui_crown(78,180,COLOR_NEON);
@@ -1028,7 +1038,7 @@ int main(void){
         }
 
         if(pressed&SCE_CTRL_START){
-            exit_log("INPUT: START pressed (ignored in v3.6)");
+            exit_log("INPUT: START pressed (ignored in v3.7)");
         }
 
         /*

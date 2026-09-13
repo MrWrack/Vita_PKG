@@ -114,11 +114,9 @@ static void scan_installed_category(BrowserList *out, int want_games, int append
 }
 
 void scan_homebrew(BrowserList *out) {
-    /* Homebrew category:
-       - VPK/MRW-PKG files in the user's package folders
-       - installed non-PCS titles from ux0:/app */
-    scan_packages(out);
-    scan_installed_category(out, 0, 1);
+    /* Homebrew category is for INSTALLED homebrew only.
+       Loose .vpk/.pkg files belong exclusively to the Convert/Install menus. */
+    scan_installed_category(out, 0, 0);
 }
 
 void scan_games(BrowserList *out) {

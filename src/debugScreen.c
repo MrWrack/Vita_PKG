@@ -262,6 +262,50 @@ int psvDebugScreenPrintf(const char *format, ...) {
     return n;
 }
 
+
+void psvDebugScreenSetXY(int x, int y) { g_x=x; g_y=y; }
+
+void psvDebugScreenFillRect(int x,int y,int w,int h,uint32_t color){
+    if(!g_fb) return;
+    color=normalize_color(color);
+    if(x<0){w+=x;x=0;} if(y<0){h+=y;y=0;}
+    if(x+w>FB_W) w=FB_W-x; if(y+h>FB_H) h=FB_H-y;
+    if(w<=0||h<=0) return;
+    for(int yy=0;yy<h;yy++){
+        uint32_t *row=g_fb+(y+yy)*FB_PITCH+x;
+        for(int xx=0;xx<w;xx++) row[xx]=color;
+    }
+}
+void psvDebugScreenRect(int x,int y,int w,int h,uint32_t color,int t){
+    if(t<1)t=1;
+    psvDebugScreenFillRect(x,y,w,t,color);
+    psvDebugScreenFillRect(x,y+h-t,w,t,color);
+    psvDebugScreenFillRect(x,y,t,h,color);
+    psvDebugScreenFillRect(x+w-t,y,t,h,color);
+}
+void psvDebugScreenLine(int x0,int y0,int x1,int y1,uint32_t color){
+    if(!g_fb)return;
+    color=normalize_color(color);
+    int dx=x1>x0?x1-x0:x0-x1,sx=x0<x1?1:-1;
+    int dy=-(y1>y0?y1-y0:y0-y1),sy=y0<y1?1:-1,err=dx+dy;
+    for(;;){
+        if(x0>=0&&x0<FB_W&&y0>=0&&y0<FB_H)g_fb[y0*FB_PITCH+x0]=color;
+        if(x0==x1&&y0==y1)break;
+        int e2=2*err;
+        if(e2>=dy){err+=dy;x0+=sx;}
+        if(e2<=dx){err+=dx;y0+=sy;}
+    }
+}
+void psvDebugScreenCircle(int cx,int cy,int r,uint32_t color){
+    if(!g_fb)return;
+    color=normalize_color(color);
+    int x=r,y=0,err=0;
+    while(x>=y){
+        int pts[8][2]={{cx+x,cy+y},{cx+y,cy+x},{cx-y,cy+x},{cx-x,cy+y},{cx-x,cy-y},{cx-y,cy-x},{cx+y,cy-x},{cx+x,cy-y}};
+        for(int i=0;i<8;i++){int px=pts[i][0],py=pts[i][1];if(px>=0&&px<FB_W&&py>=0&&py<FB_H)g_fb[py*FB_PITCH+px]=color;}
+        y++; if(err<=0)err+=2*y+1; if(err>0){x--;err-=2*x+1;}
+    }
+}
 void psvDebugScreenPresent(void) {
     if (!g_fb)
         return;

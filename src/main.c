@@ -71,12 +71,12 @@ static int g_search_category_selected = 0;
 static int g_delete_index = -1;
 
 static const char *home_items[] = {
-    "VPK Files / Convert",
-    "PKG Files / Install",
-    "Search",
-    "Settings",
-    "About",
-    "Exit"
+    "VPK CONVERT",
+    "PKG INSTALL",
+    "GAMES",
+    "HOMEBREW",
+    "SEARCH",
+    "SETTINGS"
 };
 #define HOME_COUNT 6
 
@@ -140,7 +140,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v3.4\n");
+    printf("MRWRACK PKG CONVERTER  v3.5\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -307,9 +307,8 @@ static void ui_background(void){
     psvDebugScreenLine(58,39,53,31,COLOR_WHITE);
     psvDebugScreenLine(78,39,83,31,COLOR_WHITE);
 
-    ui_text(102,28,COLOR_WHITE,"GitHub");
-    ui_text(102,48,COLOR_NEON,"MRWRACK");
-    ui_text(102,66,COLOR_DIM,"PS VITA TOOLS & MORE");
+        ui_text(102,36,COLOR_NEON,"MRWRACK");
+    ui_text(102,60,COLOR_DIM,"PS VITA TOOLS & MORE");
     ui_text(720,28,COLOR_WHITE,"HOMEBREW  GAMES  TOOLS");
     ui_text(754,50,COLOR_NEON,"BY MRWRACK");
 }
@@ -328,7 +327,7 @@ static void ui_footer(void){
     ui_text(172,505,COLOR_WHITE,"O Back");
     ui_text(286,505,COLOR_WHITE,"[] Refresh");
     ui_text(438,505,COLOR_WHITE,"△ Options");
-    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.4");
+    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.5");
 }
 static void draw_loading_screen(const char *title,const char *file,int install_mode){
     ui_background();
@@ -343,27 +342,121 @@ static void draw_loading_screen(const char *title,const char *file,int install_m
     ui_text(78,311,COLOR_DIM,"Please wait. Do not close the application.");
     psvDebugScreenPresent();
 }
+
+static void ui_draw_menu_icon(int kind,int cx,int cy,int selected){
+    uint32_t c=selected?COLOR_NEON:COLOR_WHITE;
+    uint32_t d=selected?0xFF0B2212u:0xFF0D120Eu;
+
+    psvDebugScreenCircle(cx,cy,26,0xFF24452Fu);
+    psvDebugScreenFillRect(cx-22,cy-22,44,44,d);
+
+    if(kind==0){
+        /* VPK Convert: document + arrows */
+        psvDebugScreenRect(cx-10,cy-14,20,28,c,2);
+        psvDebugScreenLine(cx+2,cy-14,cx+10,cy-6,c);
+        psvDebugScreenLine(cx-3,cy-1,cx+7,cy-1,c);
+        psvDebugScreenLine(cx+7,cy-1,cx+3,cy-5,c);
+        psvDebugScreenLine(cx+7,cy-1,cx+3,cy+3,c);
+        psvDebugScreenLine(cx+3,cy+8,cx-7,cy+8,c);
+        psvDebugScreenLine(cx-7,cy+8,cx-3,cy+4,c);
+        psvDebugScreenLine(cx-7,cy+8,cx-3,cy+12,c);
+    } else if(kind==1){
+        /* PKG Install: package + down arrow */
+        psvDebugScreenRect(cx-12,cy-12,24,22,c,2);
+        psvDebugScreenLine(cx-12,cy-12,cx,cy-20,c);
+        psvDebugScreenLine(cx,cy-20,cx+12,cy-12,c);
+        psvDebugScreenLine(cx,cy-20,cx,cy+10,c);
+        psvDebugScreenLine(cx+18,cy+2,cx+18,cy+16,c);
+        psvDebugScreenLine(cx+12,cy+10,cx+18,cy+16,c);
+        psvDebugScreenLine(cx+24,cy+10,cx+18,cy+16,c);
+    } else if(kind==2){
+        /* Games: controller */
+        psvDebugScreenCircle(cx-9,cy,10,c);
+        psvDebugScreenCircle(cx+9,cy,10,c);
+        psvDebugScreenFillRect(cx-10,cy-6,20,12,d);
+        psvDebugScreenLine(cx-14,cy,cx-4,cy,c);
+        psvDebugScreenLine(cx-9,cy-5,cx-9,cy+5,c);
+        psvDebugScreenCircle(cx+8,cy-3,2,c);
+        psvDebugScreenCircle(cx+14,cy+3,2,c);
+    } else if(kind==3){
+        /* Homebrew: house */
+        psvDebugScreenLine(cx-16,cy-2,cx,cy-18,c);
+        psvDebugScreenLine(cx,cy-18,cx+16,cy-2,c);
+        psvDebugScreenRect(cx-11,cy-2,22,19,c,2);
+        psvDebugScreenRect(cx-3,cy+7,6,10,c,1);
+    } else if(kind==4){
+        /* Search: magnifier */
+        psvDebugScreenCircle(cx-5,cy-5,12,c);
+        psvDebugScreenLine(cx+4,cy+4,cx+17,cy+17,c);
+        psvDebugScreenLine(cx+5,cy+3,cx+18,cy+16,c);
+    } else if(kind==5){
+        /* Settings: simple gear */
+        psvDebugScreenCircle(cx,cy,11,c);
+        psvDebugScreenCircle(cx,cy,4,c);
+        psvDebugScreenFillRect(cx-2,cy-19,4,7,c);
+        psvDebugScreenFillRect(cx-2,cy+12,4,7,c);
+        psvDebugScreenFillRect(cx-19,cy-2,7,4,c);
+        psvDebugScreenFillRect(cx+12,cy-2,7,4,c);
+    }
+}
+
+static void ui_card_icon(int x,int y,int w,int h,const char *title,const char *sub,int selected,int icon_kind){
+    uint32_t border=selected?COLOR_NEON:0xFF24452Fu;
+    uint32_t fill=selected?0xFF0B2212u:0xFF101411u;
+
+    psvDebugScreenFillRect(x,y,w,h,fill);
+    psvDebugScreenRect(x,y,w,h,border,selected?3:1);
+    if(selected) psvDebugScreenFillRect(x,y,5,h,COLOR_NEON);
+
+    ui_text(x+22,y+18,selected?COLOR_NEON:COLOR_WHITE,title);
+    ui_text(x+22,y+44,COLOR_DIM,sub);
+
+    /* Requested icon on the RIGHT side of every clickable card. */
+    ui_draw_menu_icon(icon_kind,x+w-48,y+h/2,selected);
+
+    /* Small chevron beside the icon. */
+    ui_text(x+w-18,y+31,selected?COLOR_NEON:COLOR_DIM,">");
+}
 static void draw_ui(BrowserList *b, const Settings *s){
     ui_background();
 
     if(g_screen==SCREEN_HOME){
-        const char *titles[5]={"VPK CONVERT","PKG INSTALL","SETTINGS","ABOUT","EXIT"};
-        const char *subs[5]={"Convert VPK to MRW-PKG","Install MRW-PKG files","App settings","About MrWrack","Close app"};
-        int xs[5]={36,318,36,318,36};
-        int ys[5]={116,116,226,226,336};
-        for(int i=0;i<5;i++) ui_card(xs[i],ys[i],258,88,titles[i],subs[i],i==g_home_selected);
+        const char *titles[6]={
+            "VPK CONVERT",
+            "PKG INSTALL",
+            "GAMES",
+            "HOMEBREW",
+            "SEARCH",
+            "SETTINGS"
+        };
+        const char *subs[6]={
+            "Convert VPK to MRW-PKG",
+            "Install MRW-PKG files",
+            "Browse installed games",
+            "Browse installed homebrew",
+            "Search games & homebrew",
+            "App settings"
+        };
+
+        int xs[6]={36,318,36,318,36,318};
+        int ys[6]={116,116,226,226,336,336};
+
+        for(int i=0;i<6;i++)
+            ui_card_icon(xs[i],ys[i],258,88,titles[i],subs[i],i==g_home_selected,i);
 
         psvDebugScreenFillRect(620,116,304,308,0xFF071009u);
         psvDebugScreenRect(620,116,304,308,0xFF24452Fu,1);
-        ui_text(658,148,COLOR_NEON,"MRWRACK");
-        ui_text(658,176,COLOR_WHITE,"PKG CONVERTER");
-        ui_text(658,210,COLOR_DIM,"Homebrew  Games  Tools");
-        ui_text(658,270,COLOR_WHITE,"PLAY");
-        ui_text(700,294,COLOR_WHITE,"MOD");
-        ui_text(742,318,COLOR_WHITE,"EXPLORE");
-        ui_text(784,342,COLOR_WHITE,"CREATE");
-        ui_text(658,388,COLOR_NEON,"BUILT BY PLAYERS");
-        ui_text(690,408,COLOR_NEON,"FOR PLAYERS");
+
+        ui_text(658,146,COLOR_NEON,"MRWRACK");
+        ui_text(658,174,COLOR_WHITE,"PKG CONVERTER");
+        ui_text(658,206,COLOR_DIM,"Homebrew  Games  Tools");
+        ui_text(658,254,COLOR_WHITE,"PLAY");
+        ui_text(702,280,COLOR_WHITE,"MOD");
+        ui_text(742,306,COLOR_WHITE,"EXPLORE");
+        ui_text(782,332,COLOR_WHITE,"CREATE");
+        ui_text(658,384,COLOR_NEON,"BUILT BY PLAYERS");
+        ui_text(690,406,COLOR_NEON,"FOR PLAYERS");
+
         ui_footer();
     }
     else if(g_screen==SCREEN_VPK || g_screen==SCREEN_PKG){
@@ -378,32 +471,85 @@ static void draw_ui(BrowserList *b, const Settings *s){
 
         if(count<=0){
             ui_text(62,208,COLOR_WHITE,type==ITEM_VPK?"No VPK files found.":"No PKG files found.");
-        }else{
-            int first=g_file_selected-6;if(first<0)first=0;
-            int last=first+12;if(last>count)last=count;
+        } else {
+            int first=g_file_selected-6;
+            if(first<0) first=0;
+            int last=first+12;
+            if(last>count) last=count;
+
             int row=0;
             for(int n=first;n<last;n++,row++){
                 int idx=filtered_index(b,type,n);
-                if(idx<0)continue;
+                if(idx<0) continue;
+
                 BrowserItem *e=&b->items[idx];
                 int y=190+row*18;
-                if(n==g_file_selected) psvDebugScreenFillRect(48,y-2,852,17,0xFF0B2212u);
+
+                if(n==g_file_selected)
+                    psvDebugScreenFillRect(48,y-2,852,17,0xFF0B2212u);
+
                 ui_text(58,y,n==g_file_selected?COLOR_NEON:COLOR_WHITE,e->name);
+            }
+        }
+        ui_footer();
+    }
+    else if(g_screen==SCREEN_SEARCH_MENU){
+        ui_text(40,118,COLOR_NEON,"SEARCH");
+        ui_text(40,144,COLOR_DIM,"Choose category");
+
+        ui_card_icon(60,200,360,100,"HOMEBREW","Installed homebrew",
+                     g_search_category_selected==0,3);
+        ui_card_icon(480,200,360,100,"GAMES","Installed games",
+                     g_search_category_selected==1,2);
+
+        ui_footer();
+    }
+    else if(g_screen==SCREEN_HOMEBREW || g_screen==SCREEN_GAMES){
+        ui_text(40,118,COLOR_NEON,g_screen==SCREEN_HOMEBREW?"HOMEBREW":"GAMES");
+        ui_text(40,144,COLOR_DIM,"Installed content");
+
+        psvDebugScreenFillRect(36,176,888,264,0xFF101411u);
+        psvDebugScreenRect(36,176,888,264,0xFF24452Fu,1);
+
+        int count=b->count;
+        if(count<=0){
+            ui_text(62,208,COLOR_WHITE,"Nothing found.");
+        } else {
+            if(g_file_selected>=count) g_file_selected=count-1;
+            if(g_file_selected<0) g_file_selected=0;
+
+            int first=g_file_selected-6;
+            if(first<0) first=0;
+            int last=first+12;
+            if(last>count) last=count;
+
+            int row=0;
+            for(int i=first;i<last;i++,row++){
+                BrowserItem *e=&b->items[i];
+                int y=190+row*18;
+
+                if(i==g_file_selected)
+                    psvDebugScreenFillRect(48,y-2,852,17,0xFF0B2212u);
+
+                ui_text(58,y,i==g_file_selected?COLOR_NEON:COLOR_WHITE,e->name);
+                if(e->title_id[0])
+                    ui_text(760,y,COLOR_DIM,e->title_id);
             }
         }
         ui_footer();
     }
     else if(g_screen==SCREEN_SETTINGS){
         ui_text(40,118,COLOR_NEON,"SETTINGS");
-        ui_card(60,190,820,90,"SMOOTH SCROLLING",
-                s->smooth_scroll?"Enabled":"Disabled",
-                g_settings_selected==0);
+        ui_card_icon(60,190,820,90,"SMOOTH SCROLLING",
+                     s->smooth_scroll?"Enabled":"Disabled",
+                     g_settings_selected==0,5);
         ui_footer();
     }
     else if(g_screen==SCREEN_ABOUT){
         ui_text(40,118,COLOR_NEON,"ABOUT");
-        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.4");
-        ui_text(40,190,COLOR_DIM,"GitHub  MrWrack");
+        ui_text(40,160,COLOR_WHITE,"MrWrack PKG Converter v3.5");
+        ui_text(40,190,COLOR_DIM,"PS Vita homebrew package tools.");
+        ui_text(40,220,COLOR_WHITE,"MrWrack");
         ui_footer();
     }
 
@@ -489,38 +635,54 @@ int main(void){
         last=pad.buttons;
 
         if(g_screen==SCREEN_HOME){
+            if(pressed&SCE_CTRL_LEFT){
+                if((g_home_selected%2)==1) g_home_selected--;
+                redraw=1;
+            }
+            if(pressed&SCE_CTRL_RIGHT){
+                if((g_home_selected%2)==0 && g_home_selected<5) g_home_selected++;
+                redraw=1;
+            }
             if(pressed&SCE_CTRL_UP){
-                if(g_home_selected>0) g_home_selected--;
+                if(g_home_selected>=2) g_home_selected-=2;
                 redraw=1;
             }
             if(pressed&SCE_CTRL_DOWN){
-                if(g_home_selected<HOME_COUNT-1) g_home_selected++;
+                if(g_home_selected<=3) g_home_selected+=2;
                 redraw=1;
             }
+
             if(pressed&SCE_CTRL_CROSS){
                 if(g_home_selected==0){
-                    startup_log("5: opening VPK menu");
                     scan_packages(&g_browser);
-                    startup_log("6: VPK scan complete");
                     g_screen=SCREEN_VPK;
                     g_file_selected=0;
                 }
                 else if(g_home_selected==1){
-                    startup_log("5: opening PKG menu");
                     scan_packages(&g_browser);
-                    startup_log("6: PKG scan complete");
                     g_screen=SCREEN_PKG;
                     g_file_selected=0;
                 }
                 else if(g_home_selected==2){
+                    scan_games(&g_browser);
+                    g_screen=SCREEN_GAMES;
+                    g_file_selected=0;
+                }
+                else if(g_home_selected==3){
+                    scan_homebrew(&g_browser);
+                    g_screen=SCREEN_HOMEBREW;
+                    g_file_selected=0;
+                }
+                else if(g_home_selected==4){
                     g_screen=SCREEN_SEARCH_MENU;
                     g_search_category_selected=0;
                 }
-                else if(g_home_selected==3){ g_screen=SCREEN_SETTINGS; }
-                else if(g_home_selected==4){ g_screen=SCREEN_ABOUT; }
-                else running=0;
+                else if(g_home_selected==5){
+                    g_screen=SCREEN_SETTINGS;
+                }
                 redraw=1;
             }
+
             if(pressed&SCE_CTRL_SQUARE){
                 refresh_files(&g_browser);
                 redraw=1;
@@ -691,7 +853,7 @@ int main(void){
         }
 
         if(pressed&SCE_CTRL_START){
-            exit_log("INPUT: START pressed (ignored in v3.4)");
+            exit_log("INPUT: START pressed (ignored in v3.5)");
         }
 
         /*

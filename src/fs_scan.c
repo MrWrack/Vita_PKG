@@ -5,6 +5,7 @@
 #include <string.h>
 #include <strings.h>
 #include "../include/app.h"
+#include "../include/sfo.h"
 
 static int has_ext(const char *name, const char *ext) {
     size_t ln = strlen(name), le = strlen(ext);
@@ -58,4 +59,70 @@ void scan_packages(BrowserList *out) {
     scan_dir(out, "ux0:/downloads");
     scan_dir(out, "ux0:/pkg");
     scan_dir(out, MRW_PKG_ROOT);
+}
+
+
+static int is_official_game_title_id(const char *title_id) {
+    /* Retail/digital Vita game IDs normally begin with PCS (PCSA/PCSB/PCSE/etc).
+       Everything else is shown under Homebrew/Other. */
+    return title_id &&
+           title_id[0]=='P' &&
+           title_id[1]=='C' &&
+           title_id[2]=='S';
+}
+
+static void add_installed_app(BrowserList *out, const char *title_id, int want_games) {
+    if (!out || !title_id || out->count >= MRW_MAX_ITEMS) return;
+
+    int game = is_official_game_title_id(title_id);
+    if (want_games && !game) return;
+    if (!want_games && game) return;
+
+    BrowserItem *it = &out->items[out->count++];
+    memset(it, 0, sizeof(*it));
+    it->type = ITEM_INSTALLED;
+    snprintf(it->title_id, sizeof(it->title_id), "%s", title_id);
+    snprintf(it->path, sizeof(it->path), "ux0:/app/%s", title_id);
+
+    char sfo[MRW_MAX_PATH];
+    snprintf(sfo, sizeof(sfo), "%s/sce_sys/param.sfo", it->path);
+
+    if (mrw_sfo_get_string(sfo, "TITLE", it->name, sizeof(it->name)) < 0 ||
+        !it->name[0]) {
+        snprintf(it->name, sizeof(it->name), "%s", title_id);
+    }
+
+    mrw_sfo_get_string(sfo, "APP_VER", it->version, sizeof(it->version));
+}
+
+static void scan_installed_category(BrowserList *out, int want_games, int append_mode) {
+    if (!append_mode) memset(out, 0, sizeof(*out));
+
+    SceUID d = sceIoDopen("ux0:/app");
+    if (d < 0) return;
+
+    SceIoDirent ent;
+    memset(&ent, 0, sizeof(ent));
+
+    while (sceIoDread(d, &ent) > 0) {
+        if (ent.d_name[0] != '.')
+            add_installed_app(out, ent.d_name, want_games);
+        memset(&ent, 0, sizeof(ent));
+    }
+
+    sceIoDclose(d);
+}
+
+void scan_homebrew(BrowserList *out) {
+    /* Homebrew category:
+       - VPK/MRW-PKG files in the user's package folders
+       - installed non-PCS titles from ux0:/app */
+    scan_packages(out);
+    scan_installed_category(out, 0, 1);
+}
+
+void scan_games(BrowserList *out) {
+    /* Games category:
+       installed Vita game titles (PCS* IDs) from ux0:/app */
+    scan_installed_category(out, 1, 0);
 }

@@ -60,7 +60,14 @@ int mrw_make_head_bin(void){
     r=write_file(HEAD_BIN,h,hs);free(h);return r;
 }
 static int load_paf(void){
-    uint32_t a[] = {
+    /*
+     * Match VitaShell's proven PAF loader contract.
+     *
+     * The previous build passed NULL as the option/result buffer. On real
+     * hardware that can make the internal loader touch invalid memory and
+     * return 0x80022005 (SCE_KERNEL_ERROR_INVALID_MEMORY_ACCESS).
+     */
+    static uint32_t argp[] = {
         0x180000,
         (uint32_t)-1,
         (uint32_t)-1,
@@ -69,31 +76,68 @@ static int load_paf(void){
         (uint32_t)-1
     };
 
-    /*
-     * Current VitaSDK expects the fourth parameter to be:
-     *   const SceSysmoduleOpt *option
-     * NULL selects the default options.
-     */
+    int result = -1;
+    uint32_t buf[4];
+    buf[0] = sizeof(buf);
+    buf[1] = (uint32_t)&result;
+    buf[2] = (uint32_t)-1;
+    buf[3] = (uint32_t)-1;
+
     return sceSysmoduleLoadModuleInternalWithArg(
         SCE_SYSMODULE_INTERNAL_PAF,
-        sizeof(a),
-        a,
-        NULL
+        sizeof(argp),
+        argp,
+        (const SceSysmoduleOpt *)buf
     );
 }
+
 static int unload_paf(void){
+    uint32_t buf = 0;
     return sceSysmoduleUnloadModuleInternalWithArg(
         SCE_SYSMODULE_INTERNAL_PAF,
         0,
         NULL,
-        NULL
+        (const SceSysmoduleOpt *)&buf
     );
 }
+
 int mrw_promote_package_temp(void){
-    int r=mrw_validate_package_temp();if(r<0)return r;r=mrw_make_head_bin();if(r<0)return r;
-    r=load_paf();if(r<0)return r;r=sceSysmoduleLoadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
-    if(r<0){unload_paf();return r;}r=scePromoterUtilityInit();
-    if(r>=0)r=scePromoterUtilityPromotePkgWithRif(PACKAGE_TEMP,1);
-    scePromoterUtilityExit();sceSysmoduleUnloadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);unload_paf();
+    int r=mrw_validate_package_temp();
+    if(r<0)return r;
+
+    r=mrw_make_head_bin();
+    if(r<0)return r;
+
+    r=load_paf();
+    if(r<0)return r;
+
+    r=sceSysmoduleLoadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
+    if(r<0){
+        unload_paf();
+        return r;
+    }
+
+    r=scePromoterUtilityInit();
+    if(r<0){
+        sceSysmoduleUnloadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
+        unload_paf();
+        return r;
+    }
+
+    r=scePromoterUtilityPromotePkgWithRif(PACKAGE_TEMP,1);
+
+    {
+        int er=scePromoterUtilityExit();
+        if(r>=0 && er<0)r=er;
+    }
+    {
+        int ur=sceSysmoduleUnloadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
+        if(r>=0 && ur<0)r=ur;
+    }
+    {
+        int pr=unload_paf();
+        if(r>=0 && pr<0)r=pr;
+    }
+
     return r;
 }

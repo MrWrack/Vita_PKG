@@ -140,7 +140,7 @@ static void clamp_file_selection(const BrowserList *b, ItemType type){
 static void draw_header(const char *section){
     psvDebugScreenClear(COLOR_BLACK);
     psvDebugScreenSetFgColor(COLOR_GREEN);
-    printf("MRWRACK PKG CONVERTER  v3.2\n");
+    printf("MRWRACK PKG CONVERTER  v3.3\n");
     psvDebugScreenSetFgColor(COLOR_WHITE);
     printf("VPK -> MRW-PKG   |   %s\n", section);
     printf("============================================================\n\n");
@@ -328,7 +328,7 @@ static void ui_footer(void){
     ui_text(172,505,COLOR_WHITE,"O Back");
     ui_text(286,505,COLOR_WHITE,"[] Refresh");
     ui_text(438,505,COLOR_WHITE,"△ Options");
-    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.2");
+    ui_text(700,505,COLOR_DIM,"MrWrack PKG Converter v3.3");
 }
 static void draw_loading_screen(const char *title,const char *file,int install_mode){
     ui_background();
@@ -529,7 +529,7 @@ static void draw_ui(BrowserList *b, const Settings *s){
         }
 
         if(pressed&SCE_CTRL_START){
-            exit_log("INPUT: START pressed (ignored in v3.2)");
+            exit_log("INPUT: START pressed (ignored in v3.3)");
         }
 
         /*
@@ -537,7 +537,7 @@ static void draw_ui(BrowserList *b, const Settings *s){
          * UI is rendered only after a state/input change.
          */
         sceKernelDelayThread(5000);
-    }
+    
 
     settings_save(&g_settings);
     exit_log("8: left main loop");

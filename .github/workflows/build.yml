@@ -121,7 +121,7 @@ jobs:
       - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MrWrack-PKG-Converter-v3.5-icon-ui-VPK
+          name: MrWrack-PKG-Converter-v3.6-logo-icons-fix-VPK
           path: ${{ env.VPK_FILE }}
           if-no-files-found: error
           retention-days: 30
